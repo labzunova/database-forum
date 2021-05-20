@@ -2,6 +2,7 @@ package http
 
 import (
 	"DBproject/internal/posts"
+	"DBproject/internal/service"
 	"DBproject/models"
 	"github.com/labstack/echo/v4"
 	"net/http"
@@ -40,12 +41,12 @@ func (h *Handler) PostGetOne(c echo.Context) error {
 // Если сообщение поменяло текст, то оно должно получить отметку `isEdited`.
 func (h *Handler) PostUpdate(c echo.Context) error {
 	id, _ := strconv.ParseInt(c.Param("id"), 0, 64)
-	newPost := new(models.Post)
-	if err := c.Bind(newPost); err != nil {
+	var newMessage posts.UpdateMessage
+	if err := c.Bind(newMessage); err != nil {
 		return err
 	}
 
-	post, err := h.PostsUcase.UpdatePost(id, *newPost)
+	post, err := h.PostsUcase.UpdatePost(id, newMessage.Message)
 	if err.Message == "404" {
 		return c.JSON(http.StatusNotFound, "Сообщение отсутствует в форуме")
 	}

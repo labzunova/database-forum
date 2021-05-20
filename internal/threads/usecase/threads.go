@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"DBproject/internal/threads"
-	"DBproject/internal/threads/delivery/http"
 	"DBproject/models"
 )
 
@@ -28,7 +27,7 @@ func (t threadsUsecase) UpdateThread(slug string, thread models.Thread) (models.
 	return t.threadsRepository.UpdateThread(slug, thread)
 }
 
-func (t threadsUsecase) GetThreadPosts(slug string, params http.ThreadsParse) ([]models.Post, models.Error) {
+func (t threadsUsecase) GetThreadPosts(slug string, params models.ParseParamsThread) ([]models.Post, models.Error) {
 	return t.threadsRepository.GetThreadPosts(slug, params)
 }
 

@@ -5,6 +5,7 @@ import (
 	"DBproject/models"
 	"github.com/labstack/echo/v4"
 	"net/http"
+	"strconv"
 )
 
 type Handler struct {
@@ -15,25 +16,19 @@ func NewForumHandler(forumUcase forum.ForumUsecase) forum.ForumHandler {
 	handler := &Handler{
 		ForumUcase: forumUcase,
 	}
-
 	return handler
-}
-
-type UsersParse struct {
-	limit int32
-	since string
-	desc bool
 }
 
 // Создание нового форума.
 func (h Handler) ForumCreate(c echo.Context) error {
 	newForum := new(models.Forum)
-	if err := c.Bind(newForum); err != nil {
-		return err
+	err := c.Bind(newForum)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, "")
 	}
 
-	forum, err := h.ForumUcase.CreateNewForum(*newForum)
-	switch err.Message {
+	forum, errr := h.ForumUcase.CreateNewForum(*newForum)
+	switch errr.Message {
 	case "404":
 		return c.JSON(http.StatusNotFound, "Владелец форума не найден")
 	case "409":
@@ -60,10 +55,27 @@ func (h Handler) ForumGetOne(c echo.Context) error {
 // Порядок сотрировки должен соответсвовать побайтовому сравнение в нижнем регистре.
 func (h Handler) ForumGetUsers(c echo.Context) error {
 	slug := c.Param("slug")
-	parametres := c.QueryParams() // TODO ?
+	getUsers := new(models.ParseParams)
 
-	users, err := h.ForumUcase.GetUsers(slug, parametres)
-	if err.Message != "" {
+	limit, err := strconv.Atoi(c.QueryParam("limit")) // todo if zero?
+	if err != nil {
+		// todo
+	}
+	getUsers.Limit = int32(limit)
+
+	var since string
+	since = c.QueryParam("since") // todo if zero?
+	getUsers.Since = since
+
+	var desc bool
+	desc, err = strconv.ParseBool(c.QueryParam("desc"))
+	if err != nil {
+		// todo
+	}
+	getUsers.Desc = desc
+
+	users, errr := h.ForumUcase.GetUsers(slug, *getUsers)
+	if errr.Message != "" {
 		return c.JSON(http.StatusNotFound, "Форум отсутствует в системе")
 	}
 
@@ -74,10 +86,27 @@ func (h Handler) ForumGetUsers(c echo.Context) error {
 // Ветви обсуждения выводятся отсортированные по дате создания.
 func (h Handler) ForumGetThreads(c echo.Context) error {
 	slug := c.Param("slug")
-	parametres := c.QueryParams() // TODO ?
+	getThreads := new(models.ParseParams)
 
-	threads, err := h.ForumUcase.GetThreads(slug, parametres)
-	if err.Message != "" {
+	limit, err := strconv.Atoi(c.QueryParam("limit")) // todo if zero?
+	if err != nil {
+		// todo
+	}
+	getThreads.Limit = int32(limit)
+
+	var since string
+	since = c.QueryParam("since") // todo if zero?
+	getThreads.Since = since
+
+	var desc bool
+	desc, err = strconv.ParseBool(c.QueryParam("desc"))
+	if err != nil {
+		// todo
+	}
+	getThreads.Desc = desc
+
+	threads, errr := h.ForumUcase.GetThreads(slug, *getThreads)
+	if errr.Message != "" {
 		return c.JSON(http.StatusNotFound, "Форум отсутствует в системе")
 	}
 

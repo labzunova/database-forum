@@ -17,7 +17,7 @@ func (s serviceUsecase) Clear() error {
 	return s.serviceRepository.Clear()
 }
 
-func (s serviceUsecase) Status() error {
+func (s serviceUsecase) Status() service.DBinfo {
 	return s.serviceRepository.Status()
 }
 

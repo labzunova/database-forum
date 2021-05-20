@@ -17,13 +17,13 @@ func NewUsersRepo(db *sql.DB) user.UserRepo {
 }
 
 func (db *usersRepo) CreateUser(profile models.User) (models.User, models.Error) {
-	// TODO
+	return models.User{}, models.Error{} // TODO
 }
 
 func (db *usersRepo) GetUser(nickname string) (models.User, models.Error) {
-	// TODO
+	return models.User{}, models.Error{} // TODO
 }
 
 func (db *usersRepo) UpdateUser(profile models.User) (models.User, models.Error) {
-
+	return models.User{}, models.Error{} // TODO
 }

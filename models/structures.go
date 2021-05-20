@@ -3,6 +3,7 @@ package models
 import "time"
 
 type Error struct {
+	Code int `json:"code"`
 	Message string `json:"message"`
 }
 

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="JsonSchemaMappingsProjectConfiguration">
+    <state>
+      <map>
+        <entry key="OpenAPI 3.0">
+          <value>
+            <SchemaInfo>
+              <option name="name" value="OpenAPI 3.0" />
+              <option name="relativePathToSchema" value="../../.local/share/JetBrains/GoLand2020.3/intellij-openapi/lib/intellij-openapi-1.11.jar!/schema/openapi-3.0-2019-04-02.json" />
+              <option name="applicationDefined" value="true" />
+              <option name="patterns">
+                <list>
+                  <Item>
+                    <option name="path" value="swagger.yml" />
+                  </Item>
+                </list>
+              </option>
+            </SchemaInfo>
+          </value>
+        </entry>
+      </map>
+    </state>
+  </component>
+</project>

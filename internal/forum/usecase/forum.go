@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"DBproject/internal/forum"
-	"DBproject/internal/forum/delivery/http"
 	"DBproject/models"
 )
 
@@ -24,11 +23,11 @@ func (f forumUsecase) GetForum(id string) (models.Forum, models.Error) {
 	return f.forumRepository.GetForum(id)
 }
 
-func (f forumUsecase) GetUsers(slug string, params http.UsersParse) ([]models.User, models.Error) {
+func (f forumUsecase) GetUsers(slug string, params models.ParseParams) ([]models.User, models.Error) {
 	return f.forumRepository.GetUsers(slug, params)
 }
 
-func (f forumUsecase) GetThreads(slug string, params http.UsersParse) ([]models.Thread, models.Error) {
+func (f forumUsecase) GetThreads(slug string, params models.ParseParams) ([]models.Thread, models.Error) {
 	return f.forumRepository.GetThreads(slug, params)
 }
 

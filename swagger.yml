@@ -850,37 +850,37 @@ definitions:
         format: text
         description: Собственно сообщение форума.
         example: We should be afraid of the Kraken.
-          PostFull:
-            type: object
-            description: |
-              Полная информация о сообщении, включая связанные объекты.
-            properties:
-              post:
-                $ref: '#/definitions/Post'
-              author:
-                $ref: '#/definitions/User'
-              thread:
-                $ref: '#/definitions/Thread'
-              forum:
-                $ref: '#/definitions/Forum'
-          Vote:
-            type: object
-            description: |
-              Информация о голосовании пользователя.
-            properties:
-              nickname:
-                type: string
-                format: identity
-                description: Идентификатор пользователя.
-                x-isnullable: false
-              voice:
-                type: number
-                format: int32
-                description: Отданный голос.
-                enum:
-                  - -1
-                  - 1
-                x-isnullable: false
-            required:
-              - nickname
-              - voice
+  PostFull:
+    type: object
+    description: |
+      Полная информация о сообщении, включая связанные объекты.
+    properties:
+      post:
+        $ref: '#/definitions/Post'
+      author:
+        $ref: '#/definitions/User'
+      thread:
+        $ref: '#/definitions/Thread'
+      forum:
+        $ref: '#/definitions/Forum'
+  Vote:
+    type: object
+    description: |
+      Информация о голосовании пользователя.
+    properties:
+      nickname:
+        type: string
+        format: identity
+        description: Идентификатор пользователя.
+        x-isnullable: false
+      voice:
+        type: number
+        format: int32
+        description: Отданный голос.
+        enum:
+          - -1
+          - 1
+        x-isnullable: false
+    required:
+      - nickname
+      - voice

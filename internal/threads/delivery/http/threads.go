@@ -19,13 +19,6 @@ func NewThreadsHandler(threadsUcase threads.ThreadsUsecase) threads.ThreadsHandl
 	return handler
 }
 
-type ThreadsParse struct {
-	limit int32
-	since string
-	sort string
-	desc bool
-}
-
 func (h *Handler) ThreadCreate(c echo.Context) error {
 	slug := c.Param("slug")
 	newThread := new(models.Thread)
@@ -76,14 +69,32 @@ func (h *Handler) ThreadUpdate(c echo.Context) error {
 // Сообщения выводятся отсортированные по дате создания.
 func (h *Handler) ThreadGetPosts(c echo.Context) error {
 	slug := c.Param("slug_or_id")
-	limit, _ := strconv.ParseInt(c.QueryParam("limit"), 0, 32)
-	since := c.QueryParam("since")
-	sort := c.QueryParam("sort")
-	desc, _ := strconv.ParseBool(c.QueryParam("desc"))
-	params := ThreadsParse{limit, since, sort, desc }
+	getPosts := new(models.ParseParamsThread)
 
-	posts, err := h.ThreadsUcase.GetThreadPosts(slug, params)
-	if err.Message == "404" {
+	limit, err := strconv.Atoi(c.QueryParam("limit")) // todo if zero?
+	if err != nil {
+		// todo
+	}
+	getPosts.Limit = int32(limit)
+
+	since, errr := strconv.Atoi(c.QueryParam("since")) // todo if zero?
+	if errr != nil {
+		// todo
+	}
+	getPosts.Since = int64(since)
+
+	sort := c.QueryParam("sort")
+	getPosts.Sort = sort
+
+	var desc bool
+	desc, err = strconv.ParseBool(c.QueryParam("desc"))
+	if err != nil {
+		// todo
+	}
+	getPosts.Desc = desc
+
+	posts, errrr := h.ThreadsUcase.GetThreadPosts(slug, *getPosts)
+	if errrr.Message == "404" {
 		return c.JSON(http.StatusNotFound, "Ветка отсутствует в форуме")
 	}
 

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"DBproject/handlers"
 	"DBproject/internal/forum"
 	http2 "DBproject/internal/forum/delivery/http"
 	repository2 "DBproject/internal/forum/repository"
