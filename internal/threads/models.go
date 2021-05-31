@@ -6,7 +6,6 @@ import (
 )
 
 type ThreadsHandler interface {
-	ThreadCreate(c echo.Context) error
 	ThreadGetOne(c echo.Context) error
 	ThreadUpdate(c echo.Context) error
 	ThreadGetPosts(c echo.Context) error
@@ -14,16 +13,16 @@ type ThreadsHandler interface {
 }
 
 type ThreadsUsecase interface {
-	CreateThread(slug string, thread models.Thread) (models.Thread, models.Error)
 	GetThread(slug string) (models.Thread, models.Error)
 	UpdateThread(slug string, thread models.Thread) (models.Thread, models.Error)
 	GetThreadPosts(slug string, params models.ParseParamsThread) ([]models.Post, models.Error)
 	VoteThread(slug string, vote models.Vote) (models.Thread, models.Error)
+
+	SlugOrID(slug string) int
 }
 
 type ThreadsRepo interface {
-	CreateThread(slug string, thread models.Thread) (models.Thread, models.Error)
-	GetThread(slug string) (models.Thread, models.Error)
+	GetThread(slug string, id int) (models.Thread, models.Error)
 	UpdateThread(slug string, thread models.Thread) (models.Thread, models.Error)
 	GetThreadPosts(slug string, params models.ParseParamsThread) ([]models.Post, models.Error)
 	VoteThread(slug string, vote models.Vote) (models.Thread, models.Error)

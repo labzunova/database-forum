@@ -7,7 +7,7 @@ type Error struct {
 	Message string `json:"message"`
 }
 
-//     required:
+// Status required:
 //      - user
 //      - forum
 //      - thread
@@ -19,7 +19,7 @@ type Status struct {
 	Post   int64 `json:"post"`   // Кол-во сообщений в базе данных
 }
 
-// Информация о пользователе.
+// User Информация о пользователе.
 //     required:
 //      - fullname
 //      - email
@@ -32,7 +32,7 @@ type User struct {
 	Email    string `json:"email"`    // Почтовый адрес пользователя (уникальное поле)
 }
 
-// Информация о форуме.
+// Forum Информация о форуме.
 //    required:
 //      - title
 //      - user
@@ -45,7 +45,7 @@ type Forum struct {
 	Threads int    `json:"threads"` // Общее кол-во ветвей обсуждения в данном форуме
 }
 
-// Ветка обсуждения на форуме.
+// Thread Ветка обсуждения на форуме.
 //     required:
 //      - title
 //      - author
@@ -61,7 +61,7 @@ type Thread struct {
 	Created time.Time `json:"created"` // Дата создания ветки на форуме.
 }
 
-//  Сообщение внутри ветки обсуждения на форуме.
+// Post Сообщение внутри ветки обсуждения на форуме.
 //     required:
 //      - author
 //      - message
@@ -76,12 +76,12 @@ type Post struct { //  Сообщение внутри ветки обсужде
 	Created  time.Time `json:"created"`  // Дата создания сообщения на форуме.
 }
 
-//  Сообщение для обновления сообщения внутри ветки на форуме. Пустые параметры остаются без изменений.
+// PostUpdate Сообщение для обновления сообщения внутри ветки на форуме. Пустые параметры остаются без изменений.
 type PostUpdate struct {
 	Message string `json:"message"` // Собственно сообщение форума.
 }
 
-//  Полная информация о сообщении, включая связанные объекты
+// PostFull Полная информация о сообщении, включая связанные объекты
 type PostFull struct {
 	Post   Post   `json:"post"`
 	Author User   `json:"author"`
@@ -89,7 +89,7 @@ type PostFull struct {
 	Forum  Forum  `json:"forum"`
 }
 
-// Информация о голосовании пользователя.
+// Vote Информация о голосовании пользователя.
 //     required:
 //      - nickname
 //      - voice

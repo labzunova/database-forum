@@ -19,37 +19,19 @@ func NewThreadsHandler(threadsUcase threads.ThreadsUsecase) threads.ThreadsHandl
 	return handler
 }
 
-func (h *Handler) ThreadCreate(c echo.Context) error {
-	slug := c.Param("slug")
-	newThread := new(models.Thread)
-	if err := c.Bind(newThread); err != nil {
-		return err
-	}
-
-	thread, err := h.ThreadsUcase.CreateThread(slug, *newThread)
-	switch err.Message {
-	case "404":
-		return c.JSON(http.StatusNotFound, "Автор ветки или форум не найдены")
-	case "409":
-		return c.JSON(http.StatusConflict, thread)
-	}
-
-	return c.JSON(http.StatusOK, thread)
-}
-
-// Получение информации о ветке обсуждения по его имени.
+// ThreadGetOne Получение информации о ветке обсуждения по его имени.
 func (h *Handler) ThreadGetOne(c echo.Context) error {
 	slug := c.Param("slug_or_id")
 
 	thread, err :=  h.ThreadsUcase.GetThread(slug)
-	if err.Message == "404" {
+	if err.Code == 404 {
 		return c.JSON(http.StatusNotFound, "Ветка отсутствует в форуме")
 	}
 
 	return c.JSON(http.StatusOK, thread)
 }
 
-// Обновление ветки обсуждения на форуме.
+// ThreadUpdate Обновление ветки обсуждения на форуме.
 func (h *Handler) ThreadUpdate(c echo.Context) error {
 	slug := c.Param("slug_or_id")
 	newThread := new(models.Thread)
@@ -58,7 +40,7 @@ func (h *Handler) ThreadUpdate(c echo.Context) error {
 	}
 
 	thread, err :=  h.ThreadsUcase.UpdateThread(slug, *newThread)
-	if err.Message == "404" {
+	if err.Code == 404 {
 		return c.JSON(http.StatusNotFound, "Ветка отсутствует в форуме")
 	}
 

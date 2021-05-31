@@ -17,13 +17,15 @@ type PostsHandler interface {
 
 type PostsUsecase interface {
 	GetPost() (models.Post, models.Error)
-	UpdatePost(id int64, message string) (models.Post, models.Error)
+	UpdatePost(id int, message string) (models.Post, models.Error)
 	CreatePosts(slug string, posts []models.Post) ([]models.Post, models.Error)
 }
 
 
 type PostsRepo interface {
 	GetPost() (models.Post, models.Error)
-	UpdatePost(id int64, message string) (models.Post, models.Error)
-	CreatePosts(slug string, posts []models.Post) ([]models.Post, models.Error)
+	UpdatePost(id int, message string) (models.Post, models.Error)
+	CreatePosts(thread models.Thread, posts []models.Post) ([]models.Post, models.Error)
+	GetThreadAndForumById(id int) (models.Thread, models.Error)
+	GetThreadAndForumBySlug(slug string) (models.Thread, models.Error)
 }

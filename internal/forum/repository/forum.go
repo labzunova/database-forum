@@ -20,12 +20,7 @@ func NewForumRepo(db *sql.DB) forum.ForumRepo {
 
 func (f *forumRepo) CreateNewForum(forum models.Forum) (models.Forum, models.Error) {
 	// checkUserExists
-	err := f.DB.QueryRow("select title from forums where user=$1", forum.User).Scan()
-	if err == sql.ErrNoRows {
-		return models.Forum{}, models.Error{Code: 404}
-	}
-
-	err = f.DB.QueryRow("insert into forums (title, user, slug) values ($1, $2, $3)",
+	err := f.DB.QueryRow("insert into forums (title, user, slug) values ($1, $2, $3)",
 		forum.Title, forum.User, forum.Slug).Scan()
 	if err != nil {
 		DBerror, _ := err.(pgx.PgError) // TODO error handling
@@ -35,6 +30,8 @@ func (f *forumRepo) CreateNewForum(forum models.Forum) (models.Forum, models.Err
 			return models.Forum{}, models.Error{Code: 409}
 		case pgerrcode.NotNullViolation: // если владелец не найден ???
 			return models.Forum{}, models.Error{Code: 404}
+		default:
+			return models.Forum{}, models.Error{Code: 500}
 		}
 	}
 
@@ -49,24 +46,60 @@ func (f *forumRepo) GetForum(slug string) (models.Forum, models.Error) {
 		return models.Forum{}, models.Error{Code: 404}
 	}
 
-	return *forum, models.Error{}
+	return *forum, models.Error{Code: 200}
 }
 
-// TODO limit offset desc
-func (f *forumRepo) GetUsers(slug string, params models.ParseParams) ([]models.User, models.Error) {
-	var forumID int
-	err := f.DB.QueryRow("select id from forums where slug = $1", slug).Scan(forumID)
-	if err != nil {
+func (f *forumRepo) CreateThread(slug string, thread models.Thread) (models.Thread, models.Error) {
+	err := f.DB.QueryRow(
+		`
+	insert into threads 
+    (title, author, message, forum, slug) 
+	values ($2,$3,$4,$5) 
+	returning id, u.nickname, created`,
+		thread.Title, thread.Author, thread.Message, thread.Forum, slug).Scan(thread.ID, thread.Author)
 
+	DBerror, _ := err.(pgx.PgError) // TODO error handling
+	switch DBerror.Code {
+	case pgerrcode.UniqueViolation: // если такой тред уже еть
+		return thread, models.Error{Code: 409}
+	case pgerrcode.NotNullViolation: // если владелец не найден ???
+		return models.Thread{}, models.Error{Code: 404}
 	}
 
-	forumUsers, err := f.DB.Query("select f.nickname, f.fullname, f.email, f.about from" +
-		"forum_users uf " +
-		"join forums f where f.id = uf.forumID " +
-		"join users u where uf.userID = u.id " +
-		"where uf.forumID = $1 " +
-		"order by uf.nickname", forumID)
+	return thread, models.Error{Code: 200}// todo
+}
 
+func (f *forumRepo) GetUsers(slug string, params models.ParseParams) ([]models.User, models.Error) {
+	var queryParametres []interface{}
+	query := `
+		select u.nickname, u.fullname, u.email, u.about from
+		forum_users uf 
+		join users u where uf.userID = u.id 
+		where uf.forumSlug = $1
+	`
+	queryParametres = append(queryParametres, slug)
+
+	if params.Since != "" {
+		query += " and nickname > $2 "
+		queryParametres = append(queryParametres, params.Since)
+	}
+
+	if !params.Desc {
+		query += " order by uf.nickname"
+	} else {
+		query += " order by uf.nickname desc"
+	}
+
+	if params.Limit != 0 {
+		if params.Since == "" {
+			query += "  LIMIT $2"
+		} else {
+			query += "  LIMIT $3"
+		}
+		queryParametres = append(queryParametres, params.Limit)
+	}
+
+	forumUsers, err := f.DB.Query(query, queryParametres)
 	if err != nil {
 		return []models.User{}, models.Error{Code: 404}
 	}
@@ -81,7 +114,7 @@ func (f *forumRepo) GetUsers(slug string, params models.ParseParams) ([]models.U
 			user.About,
 		)
 		if err != nil {
-			return  []models.User{}, models.Error{}
+			return []models.User{}, models.Error{Code: 500}
 		}
 
 		users = append(users, *user)
@@ -91,16 +124,34 @@ func (f *forumRepo) GetUsers(slug string, params models.ParseParams) ([]models.U
 }
 
 func (f *forumRepo) GetThreads(slug string, params models.ParseParams) ([]models.Thread, models.Error) {
-	var forumTitle int
-	err := f.DB.QueryRow("select title from forums where slug = $1", slug).Scan(forumTitle)
-	if err != nil {
+	var queryParams []interface{}
+	query := `
+		select t.id, t.title, t.author, t.forum, t.message, t.votes, t.slug, t.created from
+		threads t where t.slug = $1 
+	`
+	queryParams = append(queryParams, slug)
 
+	if params.Since != "" {
+		query += " and created > $2 "
+		queryParams = append(queryParams, params.Since)
 	}
 
-	forumUsers, err := f.DB.Query("select t.id, t.title, t.author, t.forum, t.message, t.votes, t.slug, t.created from " +
-		"threads t where t.forum = $1" +
-		"order by t.forum", forumTitle)
+	if !params.Desc {
+		query += " order by t.forum"
+	} else {
+		query += " order by t.forum desc"
+	}
 
+	if params.Limit != 0 {
+		if params.Since == "" {
+			query += "  LIMIT $2"
+		} else {
+			query += "  LIMIT $3"
+		}
+		queryParams = append(queryParams, params.Limit)
+	}
+
+	forumUsers, err := f.DB.Query(query, queryParams)
 	if err != nil {
 		return []models.Thread{}, models.Error{Code: 404}
 	}
@@ -119,10 +170,11 @@ func (f *forumRepo) GetThreads(slug string, params models.ParseParams) ([]models
 			thread.Created,
 		)
 		if err != nil {
-			return  []models.Thread{}, models.Error{}
+			return  []models.Thread{}, models.Error{Code: 500}
 		}
 
 		threads = append(threads, *thread)
 	}
 
-	return threads, models.Error{}}
+	return threads, models.Error{Code: 200}
+}

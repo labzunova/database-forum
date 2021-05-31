@@ -8,6 +8,7 @@ import (
 type ForumHandler interface {
 	ForumCreate(c echo.Context) error
  	ForumGetOne(c echo.Context) error
+	ThreadCreate(c echo.Context) error
 	ForumGetUsers(c echo.Context) error
 	ForumGetThreads(c echo.Context) error
 }
@@ -15,6 +16,7 @@ type ForumHandler interface {
 type ForumUsecase interface {
 	CreateNewForum(forum models.Forum) (models.Forum, models.Error)
 	GetForum(id string) (models.Forum, models.Error)
+	CreateThread(slug string, thread models.Thread) (models.Thread, models.Error)
 	GetUsers(slug string, params models.ParseParams) ([]models.User, models.Error)
 	GetThreads(slug string, params models.ParseParams) ([]models.Thread, models.Error)
 }
@@ -22,6 +24,7 @@ type ForumUsecase interface {
 type ForumRepo interface {
 	CreateNewForum(forum models.Forum) (models.Forum, models.Error)
 	GetForum(id string) (models.Forum, models.Error)
+	CreateThread(slug string, thread models.Thread) (models.Thread, models.Error)
 	GetUsers(slug string, params models.ParseParams) ([]models.User, models.Error)
 	GetThreads(slug string, params models.ParseParams) ([]models.Thread, models.Error)
 }

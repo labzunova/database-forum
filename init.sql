@@ -14,21 +14,22 @@ CREATE TABLE users (
 
 CREATE TABLE forums (
                         id SERIAL NOT NULL PRIMARY KEY,
-                        title TEXT UNIQUE NOT NULL,
+                        title TEXT NOT NULL,
                         "user" TEXT REFERENCES users(nickname) ON DELETE CASCADE NOT NULL,
-                        slug TEXT NOT NULL,
-                        posts INT,
-                        threads INT
+                        slug TEXT UNIQUE NOT NULL,
+                        posts INT DEFAULT 0,
+                        threads INT DEFAULT 0,
+                        created TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
 );
 
 CREATE TABLE threads (
                          id SERIAL NOT NULL PRIMARY KEY,
                          title TEXT NOT NULL,
-                         "author" INTEGER REFERENCES users(id) ON DELETE CASCADE NOT NULL,
-                         "forum" TEXT REFERENCES forums(title) ON DELETE CASCADE  NOT NULL,
-                         message TEXT,
-                         votes INT,
                          slug TEXT,
+                         "author" INTEGER REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+                         "forum" TEXT REFERENCES forums(slug) ON DELETE CASCADE  NOT NULL,
+                         message TEXT UNIQUE,
+                         votes INT DEFAULT 0,
                          created TIMESTAMP
 );
 
@@ -38,12 +39,12 @@ CREATE TABLE posts (
                        "author" TEXT REFERENCES users(nickname) ON DELETE CASCADE NOT NULL,
                        message TEXT NOT NULL,
                        isEdited BOOLEAN NOT NULL,
-                       "forum" INTEGER REFERENCES forums(id) ON DELETE CASCADE NOT NULL,
-                       "thread" INTEGER REFERENCES threads(id) ON DELETE CASCADE NOT NULL,
+                       "forum" TEXT REFERENCES forums(slug) ON DELETE CASCADE NOT NULL,
+                       "thread" TEXT REFERENCES threads(slug) ON DELETE CASCADE NOT NULL,
                        created TIMESTAMP NOT NULL
 );
 
 CREATE TABLE forum_users (
     userID  INTEGER REFERENCES users (id),
-    forumID INTEGER REFERENCES forums (id)
+    forumSlug TEXT REFERENCES forums (slug) -- изменила из-за GetUsers
 );

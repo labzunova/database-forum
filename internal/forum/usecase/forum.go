@@ -23,6 +23,10 @@ func (f forumUsecase) GetForum(id string) (models.Forum, models.Error) {
 	return f.forumRepository.GetForum(id)
 }
 
+func (f forumUsecase) CreateThread(slug string, thread models.Thread) (models.Thread, models.Error) {
+	return f.forumRepository.CreateThread(slug, thread)
+}
+
 func (f forumUsecase) GetUsers(slug string, params models.ParseParams) ([]models.User, models.Error) {
 	return f.forumRepository.GetUsers(slug, params)
 }
