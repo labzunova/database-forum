@@ -40,7 +40,7 @@ func router(e *echo.Echo, user user.UserHandler, forum forum.ForumHandler, posts
 	e.POST("/thread/:slug_or_id/create", posts.PostsCreate)
 	e.GET("/thread/:slug_or_id/details", threads.ThreadGetOne)
 	e.POST("/thread/:slug_or_id/details", threads.ThreadUpdate)
-	e.GET("/thread/:slug_or_id/posts", threads.ThreadGetPosts)
+	e.GET("/thread/:slug_or_id/posts", threads.ThreadGetPosts) // todo
 	e.POST("/thread/:slug_or_id/vote", threads.ThreadVote)
 	e.POST("/user/:nickname/create", user.UserCreate)
 	e.GET("/user/:nickname/profile", user.UserGetOne)

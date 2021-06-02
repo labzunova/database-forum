@@ -40,7 +40,7 @@ CREATE TABLE posts (
                        message TEXT NOT NULL,
                        isEdited BOOLEAN NOT NULL,
                        "forum" TEXT REFERENCES forums(slug) ON DELETE CASCADE NOT NULL,
-                       "thread" TEXT REFERENCES threads(slug) ON DELETE CASCADE NOT NULL,
+                       "thread" INTEGER REFERENCES threads(id) ON DELETE CASCADE NOT NULL,
                        created TIMESTAMP NOT NULL
 );
 

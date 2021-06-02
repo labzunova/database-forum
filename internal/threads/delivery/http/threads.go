@@ -33,13 +33,13 @@ func (h *Handler) ThreadGetOne(c echo.Context) error {
 
 // ThreadUpdate Обновление ветки обсуждения на форуме.
 func (h *Handler) ThreadUpdate(c echo.Context) error {
-	slug := c.Param("slug_or_id")
+	slugOrId := c.Param("slug_or_id")
 	newThread := new(models.Thread)
 	if err := c.Bind(newThread); err != nil {
 		return err
 	}
 
-	thread, err :=  h.ThreadsUcase.UpdateThread(slug, *newThread)
+	thread, err :=  h.ThreadsUcase.UpdateThread(slugOrId, *newThread)
 	if err.Code == 404 {
 		return c.JSON(http.StatusNotFound, "Ветка отсутствует в форуме")
 	}
@@ -47,35 +47,32 @@ func (h *Handler) ThreadUpdate(c echo.Context) error {
 	return c.JSON(http.StatusOK, thread)
 }
 
-// Получение списка сообщений в данной ветке форуме.
+// ThreadGetPosts Получение списка сообщений в данной ветке форуме.
 // Сообщения выводятся отсортированные по дате создания.
 func (h *Handler) ThreadGetPosts(c echo.Context) error {
-	slug := c.Param("slug_or_id")
+	slugOrId := c.Param("slug_or_id")
 	getPosts := new(models.ParseParamsThread)
 
-	limit, err := strconv.Atoi(c.QueryParam("limit")) // todo if zero?
+	var err error
+	getPosts.Limit, err = strconv.Atoi(c.QueryParam("limit"))
 	if err != nil {
-		// todo
+		return c.JSON(http.StatusBadRequest, "limit не найден")
 	}
-	getPosts.Limit = int32(limit)
 
-	since, errr := strconv.Atoi(c.QueryParam("since")) // todo if zero?
-	if errr != nil {
-		// todo
+	getPosts.Since, err = strconv.Atoi(c.QueryParam("since"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, "since не найден")
 	}
-	getPosts.Since = int64(since)
 
 	sort := c.QueryParam("sort")
 	getPosts.Sort = sort
 
-	var desc bool
-	desc, err = strconv.ParseBool(c.QueryParam("desc"))
+	getPosts.Desc, err = strconv.ParseBool(c.QueryParam("desc"))
 	if err != nil {
-		// todo
+		return c.JSON(http.StatusBadRequest, "desc не найден")
 	}
-	getPosts.Desc = desc
 
-	posts, errrr := h.ThreadsUcase.GetThreadPosts(slug, *getPosts)
+	posts, errrr := h.ThreadsUcase.GetThreadPosts(slugOrId, *getPosts)
 	if errrr.Message == "404" {
 		return c.JSON(http.StatusNotFound, "Ветка отсутствует в форуме")
 	}

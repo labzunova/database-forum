@@ -16,18 +16,25 @@ func NewThreadsUsecase(repo threads.ThreadsRepo) threads.ThreadsUsecase {
 	}
 }
 
-func (t threadsUsecase) GetThread(slug string) (models.Thread, models.Error) {
-	id := t.SlugOrID(slug)
-	return t.threadsRepository.GetThread(slug, id)
+func (t threadsUsecase) GetThread(slugOrId string) (models.Thread, models.Error) {
+	id := t.SlugOrID(slugOrId)
+	return t.threadsRepository.GetThread(slugOrId, id)
 }
 
-func (t threadsUsecase) UpdateThread(slug string, thread models.Thread) (models.Thread, models.Error) {
-	thread.ID = t.SlugOrID(slug)
-	return t.threadsRepository.UpdateThread(slug, thread)
+func (t threadsUsecase) UpdateThread(slugOrId string, thread models.Thread) (models.Thread, models.Error) {
+	id := t.SlugOrID(slugOrId)
+	if id != 0 {
+		return t.threadsRepository.UpdateThreadById(id, thread)
+	}
+	return t.threadsRepository.UpdateThreadBySlug(slugOrId, thread)
 }
 
-func (t threadsUsecase) GetThreadPosts(slug string, params models.ParseParamsThread) ([]models.Post, models.Error) {
-	return t.threadsRepository.GetThreadPosts(slug, params)
+func (t threadsUsecase) GetThreadPosts(slugOrId string, params models.ParseParamsThread) ([]models.Post, models.Error) {
+	id := t.SlugOrID(slugOrId)
+	if id != 0 {
+		return t.threadsRepository.GetThreadPostsById(slugOrId, params)
+	}
+	return t.threadsRepository.GetThreadPostsBySlug(slugOrId, params)
 }
 
 func (t threadsUsecase) VoteThread(slug string, vote models.Vote) (models.Thread, models.Error) {
