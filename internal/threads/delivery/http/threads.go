@@ -72,15 +72,15 @@ func (h *Handler) ThreadGetPosts(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, "desc не найден")
 	}
 
-	posts, errrr := h.ThreadsUcase.GetThreadPosts(slugOrId, *getPosts)
-	if errrr.Message == "404" {
+	posts, errr := h.ThreadsUcase.GetThreadPosts(slugOrId, *getPosts)
+	if errr.Code == 404 {
 		return c.JSON(http.StatusNotFound, "Ветка отсутствует в форуме")
 	}
 
 	return c.JSON(http.StatusOK, posts)
 }
 
-// Изменение голоса за ветвь обсуждения.
+// ThreadVote Изменение голоса за ветвь обсуждения.
 // Один пользователь учитывается только один раз и может изменить своё мнение.
 func (h *Handler) ThreadVote(c echo.Context) error {
 	slug := c.Param("slug_or_id")
@@ -90,10 +90,9 @@ func (h *Handler) ThreadVote(c echo.Context) error {
 	}
 
 	thread, err :=  h.ThreadsUcase.VoteThread(slug, *newVote)
-	if err.Message == "404" {
+	if err.Code == 404 {
 		return c.JSON(http.StatusNotFound, "Ветка отсутствует в форуме")
 	}
 
 	return c.JSON(http.StatusOK, thread)
-
 }

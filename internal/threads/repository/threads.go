@@ -178,6 +178,26 @@ func (db *threadsRepo) GetThreadPostsBySlug(slug string, params models.ParsePara
 	return []models.Post{}, models.Error{} // todo
 }
 
-func (db *threadsRepo) VoteThread(slug string, vote models.Vote) (models.Thread, models.Error) {
+func (db *threadsRepo) VoteThreadBySlug(slug string, vote models.Vote) (models.Thread, models.Error) {
+	var oldVote int
+	err := db.DB.QueryRow("SELECT vote from votes where user=$1 and thread=$2").Scan(&oldVote)
+	if err
+}
+
+func (db *threadsRepo) VoteThreadById(id int, vote models.Vote) (models.Thread, models.Error) {
 	return models.Thread{}, models.Error{} // todo
 }
+
+func (db *threadsRepo) CheckThreadExist(slug string) (int, models.Error) {
+	var id int
+	err := db.DB.QueryRow("Select id from threads where slug = $1", slug).Scan(&id)
+	if err == sql.ErrNoRows {
+		return 0, models.Error{Code: 404}
+	}
+	if err != nil {
+		return 0, models.Error{Code: 500}
+	}
+
+	return id, models.Error{Code: 200}
+}
+

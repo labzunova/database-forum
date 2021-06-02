@@ -48,3 +48,9 @@ CREATE TABLE forum_users (
     userID  INTEGER REFERENCES users (id),
     forumSlug TEXT REFERENCES forums (slug) -- изменила из-за GetUsers
 );
+
+CREATE TABLE votes (
+    "user" TEXT REFERENCES users(nickname), -- nickname?
+    thread INTEGER REFERENCES threads(id),
+    vote INTEGER
+);

@@ -17,7 +17,6 @@ type ThreadsUsecase interface {
 	UpdateThread(slug string, thread models.Thread) (models.Thread, models.Error)
 	GetThreadPosts(slug string, params models.ParseParamsThread) ([]models.Post, models.Error)
 	VoteThread(slug string, vote models.Vote) (models.Thread, models.Error)
-
 	SlugOrID(slug string) int
 }
 
@@ -27,5 +26,7 @@ type ThreadsRepo interface {
 	UpdateThreadById(id int, thread models.Thread) (models.Thread, models.Error)
 	GetThreadPostsBySlug(slug string, params models.ParseParamsThread) ([]models.Post, models.Error)
 	GetThreadPostsById(id int, params models.ParseParamsThread) ([]models.Post, models.Error)
-	VoteThread(slug string, vote models.Vote) (models.Thread, models.Error)
+	VoteThreadBySlug(slug string, vote models.Vote) (models.Thread, models.Error)
+	VoteThreadById(id int, vote models.Vote) (models.Thread, models.Error)
+	CheckThreadExist(slug string) (int, models.Error)
 }
