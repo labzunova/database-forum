@@ -93,7 +93,6 @@ func (db *threadsRepo) GetThreadPostsById(id int, params models.ParseParamsThrea
 		}
 
 	case "parent_tree":
-
 		switch {
 		case params.Desc && params.Since != 0:
 

@@ -22,7 +22,9 @@ import (
 	"DBproject/internal/user/repository"
 	"DBproject/internal/user/usecase"
 	"database/sql"
+	"fmt"
 	"github.com/labstack/echo/v4"
+	_ "github.com/lib/pq"
 	"log"
 )
 
@@ -50,7 +52,7 @@ func router(e *echo.Echo, user user.UserHandler, forum forum.ForumHandler, posts
 func main() {
 	e := echo.New()
 
-	dsn := "jdbc:postgresql://localhost:5432/database?user=labzunova&password=1111" // TODO
+	dsn := fmt.Sprintf("user=%s password=%s dbname=%s", "labzunova", 1111, "forums")
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		log.Fatal(err)
