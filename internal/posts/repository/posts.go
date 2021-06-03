@@ -56,10 +56,10 @@ func (db *postsRepo) GetPostThread(pid int) (models.Thread, models.Error) {
 
 func (db *postsRepo) GetPostForum(pid int) (models.Forum, models.Error) {
 	forum := models.Forum{}
-	err:= db.DB.QueryRow(`
+	err := db.DB.QueryRow(`
 	select f.title, f.user, f.slug, f.posts, f.threads from forums f
 	join posts p on f.slug = p.forum
-	where p.id=$1`, pid)
+	where p.id=$1`, pid).Scan(&forum.Title, &forum.User, &forum.Slug, &forum.Posts, &forum.Threads)
 	if err != nil {
 		return forum, models.Error{Code: 500}
 	}

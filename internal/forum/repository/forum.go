@@ -41,7 +41,7 @@ func (f *forumRepo) CreateNewForum(forum models.Forum) (models.Forum, models.Err
 func (f *forumRepo) GetForum(slug string) (models.Forum, models.Error) {
 	forum := new(models.Forum)
 	err := f.DB.QueryRow("select title, user, slug, posts, threads from forums where slug = $1",
-		slug).Scan(forum.Title, forum.User, forum.Slug, forum.Posts, forum.Threads)
+		slug).Scan(&forum.Title, &forum.User, &forum.Slug, &forum.Posts, &forum.Threads)
 	if err != nil {
 		return models.Forum{}, models.Error{Code: 404}
 	}
@@ -56,7 +56,7 @@ func (f *forumRepo) CreateThread(slug string, thread models.Thread) (models.Thre
     (title, author, message, forum, slug) 
 	values ($2,$3,$4,$5) 
 	returning id, u.nickname, created`,
-		thread.Title, thread.Author, thread.Message, thread.Forum, slug).Scan(thread.ID, thread.Author)
+		thread.Title, thread.Author, thread.Message, thread.Forum, slug).Scan(&thread.ID, &thread.Author)
 
 	DBerror, _ := err.(pgx.PgError) // TODO error handling
 	switch DBerror.Code {
@@ -108,10 +108,10 @@ func (f *forumRepo) GetUsers(slug string, params models.ParseParams) ([]models.U
 	for forumUsers.Next() {
 		user := new(models.User)
 		err = forumUsers.Scan(
-			user.Nickname,
-			user.FullName,
-			user.Email,
-			user.About,
+			&user.Nickname,
+			&user.FullName,
+			&user.Email,
+			&user.About,
 		)
 		if err != nil {
 			return []models.User{}, models.Error{Code: 500}
@@ -160,14 +160,14 @@ func (f *forumRepo) GetThreads(slug string, params models.ParseParams) ([]models
 	for forumUsers.Next() {
 		thread := new(models.Thread)
 		err = forumUsers.Scan(
-			thread.ID,
-			thread.Title,
-			thread.Author,
-			thread.Forum,
-			thread.Message,
-			thread.Votes,
-			thread.Slug,
-			thread.Created,
+			&thread.ID,
+			&thread.Title,
+			&thread.Author,
+			&thread.Forum,
+			&thread.Message,
+			&thread.Votes,
+			&thread.Slug,
+			&thread.Created,
 		)
 		if err != nil {
 			return  []models.Thread{}, models.Error{Code: 500}

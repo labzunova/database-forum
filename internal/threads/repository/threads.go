@@ -77,7 +77,11 @@ func (db *threadsRepo) GetThreadPostsById(id int, params models.ParseParamsThrea
 	case "tree":
 		switch {
 		case params.Desc && params.Since != 0:
-
+			query = `
+				SELECT id, parent, author, message, isEdited, forum, thread, created
+				FROM posts
+				WHERE thread = $1 and id
+`
 		case !params.Desc && params.Since != 0:
 
 		case params.Desc && params.Since == 0:
