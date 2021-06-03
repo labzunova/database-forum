@@ -93,6 +93,9 @@ func (h *Handler) ThreadVote(c echo.Context) error {
 	if err.Code == 404 {
 		return c.JSON(http.StatusNotFound, "Ветка отсутствует в форуме")
 	}
+	if err.Code != 200 {
+		return c.JSON(http.StatusInternalServerError, "Error")
+	}
 
 	return c.JSON(http.StatusOK, thread)
 }

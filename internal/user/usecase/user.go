@@ -15,7 +15,7 @@ func NewUserUsecase(repo user.UserRepo) user.UserUsecase {
 	}
 }
 
-func (u *userUsecase) Create(user models.User) (models.User, models.Error) {
+func (u *userUsecase) Create(user models.User) models.Error {
 	return u.userRepository.CreateUser(user)
 }
 
@@ -25,4 +25,10 @@ func (u *userUsecase) GetByNickname(nickname string) (models.User, models.Error)
 
 func (u *userUsecase) Update(profle models.User) (models.User, models.Error) {
 	return u.userRepository.UpdateUser(profle)
+}
+
+// extra
+
+func (u *userUsecase) GetExistingUsers(nickname, email string) ([]models.User, models.Error) {
+	return u.userRepository.GetExistingUsers(nickname, email)
 }

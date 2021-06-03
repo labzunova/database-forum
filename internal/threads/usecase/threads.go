@@ -40,9 +40,19 @@ func (t threadsUsecase) GetThreadPosts(slugOrId string, params models.ParseParam
 func (t threadsUsecase) VoteThread(slugOrId string, vote models.Vote) (models.Thread, models.Error) {
 	id := t.SlugOrID(slugOrId)
 	if id != 0 {
-		return t.threadsRepository.VoteThreadById(id, vote)
+		err := t.threadsRepository.VoteThreadById(id, vote)
+		if err.Code != 200 {
+			return models.Thread{}, err
+		}
+		return t.threadsRepository.GetThread(slugOrId, 0)
 	}
-	return t.threadsRepository.VoteThreadBySlug(slugOrId, vote)
+
+	err := t.threadsRepository.VoteThreadBySlug(slugOrId, vote)
+	if err.Code != 200 {
+		return models.Thread{}, err
+	}
+
+	return t.threadsRepository.GetThread("", id)
 }
 
 // extra

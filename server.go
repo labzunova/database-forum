@@ -50,7 +50,7 @@ func router(e *echo.Echo, user user.UserHandler, forum forum.ForumHandler, posts
 func main() {
 	e := echo.New()
 
-	dsn := "jdbc:postgresql://localhost:5432/postgres?user=labzunova&password=1111" // TODO
+	dsn := "jdbc:postgresql://localhost:5432/database?user=labzunova&password=1111" // TODO
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		log.Fatal(err)

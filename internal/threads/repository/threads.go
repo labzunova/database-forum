@@ -4,6 +4,8 @@ import (
 	"DBproject/internal/threads"
 	"DBproject/models"
 	"database/sql"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx"
 )
 
 type threadsRepo struct {
@@ -40,7 +42,7 @@ func (db *threadsRepo) GetThread(slug string, id int) (models.Thread, models.Err
 
 func (db *threadsRepo) UpdateThreadBySlug(slug string, thread models.Thread) (models.Thread, models.Error) {
 	err := db.DB.QueryRow(`
-		update thread set message=coalesce(nullif($1,""), message), title=coalesce(nullif($2,""), title)
+		update threads set message=coalesce(nullif($1,""), message), title=coalesce(nullif($2,""), title)
 		where slug = $3 
 		returning id, title, author, forum, message, votes, created`,
 		thread.Title, thread.Message, slug).
@@ -54,7 +56,7 @@ func (db *threadsRepo) UpdateThreadBySlug(slug string, thread models.Thread) (mo
 
 func (db *threadsRepo) UpdateThreadById(id int, thread models.Thread) (models.Thread, models.Error) {
 	err := db.DB.QueryRow(`
-		update thread set message=coalesce(nullif($1,""), message), title=coalesce(nullif($2,""), title)
+		update threads set message=coalesce(nullif($1,""), message), title=coalesce(nullif($2,""), title)
 		where id = $3 
 		returning id, title, author, forum, message, votes, created`,
 		thread.Title, thread.Message, id).
@@ -178,26 +180,65 @@ func (db *threadsRepo) GetThreadPostsBySlug(slug string, params models.ParsePara
 	return []models.Post{}, models.Error{} // todo
 }
 
-func (db *threadsRepo) VoteThreadBySlug(slug string, vote models.Vote) (models.Thread, models.Error) {
-	var oldVote int
-	err := db.DB.QueryRow("SELECT vote from votes where user=$1 and thread=$2").Scan(&oldVote)
-	if err
-}
-
-func (db *threadsRepo) VoteThreadById(id int, vote models.Vote) (models.Thread, models.Error) {
-	return models.Thread{}, models.Error{} // todo
-}
-
-func (db *threadsRepo) CheckThreadExist(slug string) (int, models.Error) {
-	var id int
-	err := db.DB.QueryRow("Select id from threads where slug = $1", slug).Scan(&id)
-	if err == sql.ErrNoRows {
-		return 0, models.Error{Code: 404}
+func (db *threadsRepo) VoteThreadBySlug(slug string, vote models.Vote) models.Error {
+	_, err := db.DB.Exec("INSERT INTO votes(user, thread, vote) values ($1,$2,$3)", vote.Nickname, slug, vote.Voice)
+	dbErr := err.(pgx.PgError)
+	switch dbErr.Code {
+	case pgerrcode.NotNullViolation:
+		return models.Error{Code: 404}
+	case pgerrcode.UniqueViolation:
+		updateErr := db.UpdateVoteThreadBySlug(slug, vote)
+		if updateErr.Code != 0 {
+			return models.Error{Code: 500}
+		}
+		return models.Error{Code: 200}
 	}
+
+	_, err = db.DB.Exec("update threads set votes=votes+1 where slug=$1", slug)
 	if err != nil {
-		return 0, models.Error{Code: 500}
+		return models.Error{Code: 500}
 	}
 
-	return id, models.Error{Code: 200}
+	return models.Error{Code: 200}
 }
 
+func (db *threadsRepo) UpdateVoteThreadBySlug(slug string, vote models.Vote) models.Error {
+	_, err := db.DB.Exec("UPDATE votes SET vote=vote+$1 where thread=$2", vote.Voice, slug)
+	if err != nil {
+		return models.Error{Code: 500}
+	}
+
+	return models.Error{Code: 200}
+}
+
+func (db *threadsRepo) VoteThreadById(id int, vote models.Vote) models.Error {
+	_, err := db.DB.Exec(`INSERT INTO votes(user, thread, vote) values 
+    	($1,$2, (select slug from threads where id=$3))`, vote.Nickname, id, vote.Voice)
+	dbErr := err.(pgx.PgError)
+	switch dbErr.Code {
+	case pgerrcode.NotNullViolation:
+		return models.Error{Code: 404}
+	case pgerrcode.UniqueViolation:
+		updateErr := db.UpdateVoteThreadById(id, vote)
+		if updateErr.Code != 0 {
+			return models.Error{Code: 500}
+		}
+		return models.Error{Code: 200}
+	}
+
+	_, err = db.DB.Exec("update threads set votes=votes+1 where id=$1", id)
+	if err != nil {
+		return models.Error{Code: 500}
+	}
+
+	return models.Error{Code: 200}
+}
+
+func (db *threadsRepo) UpdateVoteThreadById(id int, vote models.Vote) models.Error {
+	_, err := db.DB.Exec("UPDATE votes SET vote=vote+$1 where thread=(select slug from threads where id=$2)", vote.Voice, id)
+	if err != nil {
+		return models.Error{Code: 500}
+	}
+
+	return models.Error{Code: 200}
+}

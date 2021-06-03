@@ -18,7 +18,7 @@ func NewUserHandler(userUcase user.UserUsecase) user.UserHandler {
 	return handler
 }
 
-// Создание нового пользователя в базе данных.
+// UserCreate Создание нового пользователя в базе данных.
 func (h *Handler) UserCreate(c echo.Context) error {
 	nickname := c.Param("nickname")
 	newUser := new(models.User)
@@ -27,27 +27,33 @@ func (h *Handler) UserCreate(c echo.Context) error {
 	}
 	newUser.Nickname = nickname
 
-	user, err := h.UserUcase.Create(*newUser)
-	if err.Message != "" {
-		return c.JSON(http.StatusConflict, "Пользователь уже присутсвует в базе данных.")
+	err := h.UserUcase.Create(*newUser)
+
+	// если такой уже есть
+	if err.Code == 409 {
+		users, errr := h.UserUcase.GetExistingUsers(newUser.Nickname, newUser.Email)
+		if errr.Code != 200 {
+			return c.JSON(http.StatusInternalServerError, "error")
+		}
+		return c.JSON(http.StatusConflict, users)
 	}
 
-	return c.JSON(http.StatusOK, user)
+	return c.JSON(http.StatusOK, newUser)
 }
 
-// Получение информации о пользователе форума по его имени.
+// UserGetOne Получение информации о пользователе форума по его имени.
 func (h *Handler) UserGetOne(c echo.Context) error {
 	nickname := c.Param("nickname")
 
 	user, err := h.UserUcase.GetByNickname(nickname)
-	if err.Message == "404" {
+	if err.Code == 404 {
 		return c.JSON(http.StatusNotFound, "Пользователь отсутсвует в системе")
 	}
 
 	return c.JSON(http.StatusOK, user)
 }
 
-// Изменение информации в профиле пользователя.
+// UserUpdate Изменение информации в профиле пользователя.
 func (h *Handler) UserUpdate(c echo.Context) error {
 	nickname := c.Param("nickname")
 	newUser := new(models.User)
@@ -57,10 +63,10 @@ func (h *Handler) UserUpdate(c echo.Context) error {
 	newUser.Nickname = nickname
 
 	user, err := h.UserUcase.Update(*newUser)
-	switch err.Message {
-	case "404":
+	switch err.Code {
+	case 404:
 		return c.JSON(http.StatusNotFound, "Пользователь отсутсвует в системе")
-	case "409":
+	case 409:
 		return c.JSON(http.StatusConflict, "Новые данные профиля пользователя конфликтуют с имеющимися пользователями")
 	}
 

@@ -12,13 +12,15 @@ type UserHandler interface {
 }
 
 type UserUsecase interface {
-	Create(user models.User) (models.User, models.Error)
+	Create(user models.User) models.Error
 	GetByNickname(nickname string) (models.User, models.Error)
-	Update(profle models.User) (models.User, models.Error)
+	Update(profile models.User) (models.User, models.Error)
+	GetExistingUsers(nickname, email string) ([]models.User, models.Error)
 }
 
 type UserRepo interface {
-	CreateUser(profile models.User) (models.User, models.Error)
+	CreateUser(profile models.User) models.Error
 	GetUser(nickname string) (models.User, models.Error)
-	UpdateUser(profle models.User) (models.User, models.Error)
+	UpdateUser(profile models.User) (models.User, models.Error)
+	GetExistingUsers(nickname, email string) ([]models.User, models.Error)
 }

@@ -19,13 +19,13 @@ CREATE TABLE forums (
                         slug TEXT UNIQUE NOT NULL,
                         posts INT DEFAULT 0,
                         threads INT DEFAULT 0,
-                        created TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
+                        created TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
 );
 
 CREATE TABLE threads (
                          id SERIAL NOT NULL PRIMARY KEY,
                          title TEXT NOT NULL,
-                         slug TEXT,
+                         slug TEXT UNIQUE,
                          "author" INTEGER REFERENCES users(id) ON DELETE CASCADE NOT NULL,
                          "forum" TEXT REFERENCES forums(slug) ON DELETE CASCADE  NOT NULL,
                          message TEXT UNIQUE,
@@ -45,12 +45,13 @@ CREATE TABLE posts (
 );
 
 CREATE TABLE forum_users (
-    userID  INTEGER REFERENCES users (id),
-    forumSlug TEXT REFERENCES forums (slug) -- изменила из-за GetUsers
+                             userID  INTEGER REFERENCES users (id),
+                             forumSlug TEXT REFERENCES forums (slug) -- изменила из-за GetUsers
 );
 
 CREATE TABLE votes (
-    "user" TEXT REFERENCES users(nickname), -- nickname?
-    thread INTEGER REFERENCES threads(id),
-    vote INTEGER
+                       "user" TEXT REFERENCES users(nickname), -- nickname?
+                       thread TEXT REFERENCES threads(slug),
+                       vote INTEGER,
+                       UNIQUE (thread, "user")
 );

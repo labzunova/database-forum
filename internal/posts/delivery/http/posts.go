@@ -28,7 +28,7 @@ type relatedForPost struct {
 	id := c.Param("id")
 	related := c.QueryParam("related") // TODO ???
 
-	posts, err :=  h.PostsUcase.GetPost(id, related) // todo
+	posts, err := h.PostsUcase.GetPost(id, related) // todo
 	if err.Code == 404 {
 		return c.JSON(http.StatusNotFound, "Ветка отсутствует в форуме")
 	}
@@ -63,10 +63,10 @@ func (h *Handler) PostsCreate(c echo.Context) error {
 	}
 
 	posts, err := h.PostsUcase.CreatePosts(slug, newPosts)
-	switch err.Message {
-	case "404":
+	switch err.Code {
+	case 404:
 		return c.JSON(http.StatusNotFound, "Ветка отсутствует в базе")
-	case "409":
+	case 409:
 		return c.JSON(http.StatusConflict, "Хотя бы один пост отсутствует в ветке")
 	}
 
