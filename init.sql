@@ -1,4 +1,7 @@
-DROP TABLE IF EXISTS users CASCADE ;
+--CREATE EXTENSION IF NOT EXISTS CITEXT;
+
+DROP TABLE IF EXISTS votes CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS posts;
 DROP TABLE IF EXISTS forums CASCADE;
 DROP TABLE IF EXISTS threads CASCADE;
@@ -6,7 +9,7 @@ DROP TABLE IF EXISTS forum_users CASCADE;
 
 CREATE TABLE users (
                        id SERIAL NOT NULL PRIMARY KEY,
-                       nickname TEXT NOT NULL UNIQUE,
+                       nickname CITEXT NOT NULL UNIQUE,
                        fullname TEXT,
                        about TEXT,
                        email TEXT
@@ -15,7 +18,7 @@ CREATE TABLE users (
 CREATE TABLE forums (
                         id SERIAL NOT NULL PRIMARY KEY,
                         title TEXT NOT NULL,
-                        "user" TEXT REFERENCES users(nickname) ON DELETE CASCADE NOT NULL,
+                        "user" CITEXT REFERENCES users(nickname) ON DELETE CASCADE NOT NULL,
                         slug TEXT UNIQUE NOT NULL,
                         posts INT DEFAULT 0,
                         threads INT DEFAULT 0,
@@ -36,9 +39,9 @@ CREATE TABLE threads (
 CREATE TABLE posts (
                        id SERIAL NOT NULL PRIMARY KEY,
                        parent INTEGER DEFAULT 0 NOT NULL,
-                       "author" TEXT REFERENCES users(nickname) ON DELETE CASCADE NOT NULL,
+                       "author" CITEXT REFERENCES users(nickname) ON DELETE CASCADE NOT NULL,
                        message TEXT NOT NULL,
-                       isEdited BOOLEAN NOT NULL,
+                       isEdited BOOLEAN NOT NULL DEFAULT FALSE,
                        "forum" TEXT REFERENCES forums(slug) ON DELETE CASCADE NOT NULL,
                        "thread" INTEGER REFERENCES threads(id) ON DELETE CASCADE NOT NULL,
                        created TIMESTAMP NOT NULL
@@ -50,7 +53,7 @@ CREATE TABLE forum_users (
 );
 
 CREATE TABLE votes (
-                       "user" TEXT REFERENCES users(nickname), -- nickname?
+                       "user" CITEXT REFERENCES users(nickname), -- nickname?
                        thread TEXT REFERENCES threads(slug),
                        vote INTEGER,
                        UNIQUE (thread, "user")

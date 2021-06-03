@@ -17,8 +17,54 @@ func NewPostsRepo(db *sql.DB) posts.PostsRepo {
 	}
 }
 
-func (db *postsRepo) GetPost() (models.Post, models.Error) {
-	return models.Post{}, models.Error{} // todo
+func (db *postsRepo) GetPost(id int) (models.Post, models.Error) {
+	post := models.Post{}
+	err := db.DB.QueryRow("select parent, author, message, isedited, forum, thread, created from posts where id=$1", id).
+		Scan(&post.Parent, &post.Author, &post.Message, &post.IsEdited, &post.Forum, &post.Thread, &post.Created)
+	if err == sql.ErrNoRows {
+		return models.Post{}, models.Error{Code: 404}
+	}
+
+	return post, models.Error{Code: 200}
+}
+
+func (db *postsRepo) GetPostAuthor(pid int) (models.User, models.Error) {
+	author := models.User{}
+	err := db.DB.QueryRow(`
+	select nickname, fullname, about, email from users
+	inner join posts p on users.nickname = p.author
+	where p.id = $1`, pid).Scan(&author.Nickname, &author.FullName, &author.About, &author.Email)
+	if err!= nil {
+		return author, models.Error{Code: 500}
+	}
+
+	return author, models.Error{Code: 200}
+}
+
+func (db *postsRepo) GetPostThread(pid int) (models.Thread, models.Error) {
+	thread := models.Thread{}
+	err := db.DB.QueryRow(`
+	select t.id, t.title, t.author, t.forum, t.message, t.votes, t.slug, t.created from threads t
+	join posts p on t.id = p.thread
+	where p.id = $1`, pid).Scan(&thread.ID, &thread.Title, &thread.Author, &thread.Forum, &thread.Message, &thread.Votes, &thread.Slug, &thread.Created)
+	if err != nil {
+		return thread, models.Error{Code: 500}
+	}
+
+	return thread, models.Error{Code: 200}
+}
+
+func (db *postsRepo) GetPostForum(pid int) (models.Forum, models.Error) {
+	forum := models.Forum{}
+	err:= db.DB.QueryRow(`
+	select f.title, f.user, f.slug, f.posts, f.threads from forums f
+	join posts p on f.slug = p.forum
+	where p.id=$1`, pid)
+	if err != nil {
+		return forum, models.Error{Code: 500}
+	}
+
+	return forum, models.Error{Code: 200}
 }
 
 func (db *postsRepo) UpdatePost(id int, message string) (models.Post, models.Error) {
@@ -27,7 +73,7 @@ func (db *postsRepo) UpdatePost(id int, message string) (models.Post, models.Err
 	}
 	err := db.DB.QueryRow("update posts set message = $1, isedited = true where id = $2 " +
 		"returning parent, author, forum, thread, created", message, id).Scan(
-			post.Parent, post.Author, post.Forum, post.Thread, post.Created)
+			&post.Parent, &post.Author, &post.Forum, &post.Thread, &post.Created)
 	post.IsEdited = true
 	post.Message = message
 

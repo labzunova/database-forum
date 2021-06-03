@@ -6,6 +6,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 type Handler struct {
@@ -25,15 +26,26 @@ type relatedForPost struct {
 
 // PostGetOne Получение информации о ветке обсуждения по его имени.
 	func (h *Handler) PostGetOne(c echo.Context) error {
-	id := c.Param("id")
-	related := c.QueryParam("related") // TODO ???
+	id, _ := strconv.ParseInt(c.Param("id"), 0, 64)
+	related := c.QueryParam("related")
+	related = strings.ReplaceAll(related, "[", "")
+	related = strings.ReplaceAll(related, "]", "")
+	relatedSlice := strings.Split(related, ",")
 
-	posts, err := h.PostsUcase.GetPost(id, related) // todo
+
+	post, err := h.PostsUcase.GetPost(int(id))
 	if err.Code == 404 {
 		return c.JSON(http.StatusNotFound, "Ветка отсутствует в форуме")
 	}
 
-	return c.JSON(http.StatusOK, posts)
+	fullPost, errr := h.PostsUcase.GetPostInfo(int(id), relatedSlice)
+	if errr.Code != 200 {
+		return c.JSON(http.StatusInternalServerError, err.Code)
+	}
+
+	fullPost.Post = post
+
+	return c.JSON(http.StatusOK, fullPost)
 }
 
 // PostUpdate Изменение сообщения на форуме.
@@ -72,5 +84,3 @@ func (h *Handler) PostsCreate(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, posts)
 }
-
-

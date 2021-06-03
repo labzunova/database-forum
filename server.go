@@ -33,7 +33,7 @@ func router(e *echo.Echo, user user.UserHandler, forum forum.ForumHandler, posts
 	e.POST("/forum/:slug/create", forum.ThreadCreate)
 	e.GET("/forum/:slug/users", forum.ForumGetUsers)
 	e.GET(" /forum/:slug/threads", forum.ForumGetThreads)
-	e.GET("/post/:id/details", posts.PostGetOne) // todo
+	e.GET("/post/:id/details", posts.PostGetOne)
 	e.POST("/post/:id/details", posts.PostUpdate)
 	e.POST("/service/clear", service.Clear)
 	e.GET("/service/status", service.Status)

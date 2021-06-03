@@ -9,6 +9,13 @@ type UpdateMessage struct {
 	Message string `json:"message"`
 }
 
+type FullPost struct {
+	Post models.Post
+	User models.User
+	Forum models.Forum
+	Thread models.Thread
+}
+
 type PostsHandler interface {
 	PostGetOne(c echo.Context) error
 	PostUpdate(c echo.Context) error
@@ -16,14 +23,20 @@ type PostsHandler interface {
 }
 
 type PostsUsecase interface {
-	GetPost() (models.Post, models.Error)
+	GetPost(id int) (models.Post, models.Error)
+	GetPostInfo(id int, related []string) (FullPost, models.Error)
+
 	UpdatePost(id int, message string) (models.Post, models.Error)
 	CreatePosts(slug string, posts []models.Post) ([]models.Post, models.Error)
 }
 
 
 type PostsRepo interface {
-	GetPost() (models.Post, models.Error)
+	GetPost(id int) (models.Post, models.Error)
+	GetPostAuthor(pid int) (models.User, models.Error)
+	GetPostThread(pid int) (models.Thread, models.Error)
+	GetPostForum(pid int) (models.Forum, models.Error)
+
 	UpdatePost(id int, message string) (models.Post, models.Error)
 	CreatePosts(thread models.Thread, posts []models.Post) ([]models.Post, models.Error)
 	GetThreadAndForumById(id int) (models.Thread, models.Error)
