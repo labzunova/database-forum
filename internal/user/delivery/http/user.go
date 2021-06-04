@@ -3,6 +3,7 @@ package http
 import (
 	"DBproject/internal/user"
 	"DBproject/models"
+	"fmt"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
@@ -37,8 +38,8 @@ func (h *Handler) UserCreate(c echo.Context) error {
 		}
 		return c.JSON(http.StatusConflict, users)
 	}
-
-	return c.JSON(http.StatusOK, newUser)
+fmt.Println(newUser, "createsd")
+	return c.JSON(http.StatusCreated, newUser)
 }
 
 // UserGetOne Получение информации о пользователе форума по его имени.
@@ -47,7 +48,8 @@ func (h *Handler) UserGetOne(c echo.Context) error {
 
 	user, err := h.UserUcase.GetByNickname(nickname)
 	if err.Code == 404 {
-		return c.JSON(http.StatusNotFound, "Пользователь отсутсвует в системе")
+		err.Message = "Can't find user by nickname: " + nickname
+		return c.JSON(http.StatusNotFound, err)
 	}
 
 	return c.JSON(http.StatusOK, user)
@@ -63,11 +65,15 @@ func (h *Handler) UserUpdate(c echo.Context) error {
 	newUser.Nickname = nickname
 
 	user, err := h.UserUcase.Update(*newUser)
+	fmt.Println(err)
 	switch err.Code {
 	case 404:
-		return c.JSON(http.StatusNotFound, "Пользователь отсутсвует в системе")
+		err.Message = "Can't find user by nickname: " + nickname
+		return c.JSON(http.StatusNotFound, err)
 	case 409:
-		return c.JSON(http.StatusConflict, "Новые данные профиля пользователя конфликтуют с имеющимися пользователями")
+		users, errr := h.UserUcase.GetExistingUsers(nickname, newUser.Email)
+		errr.Message = "This email is already registered by user: " + users[0].Nickname
+		return c.JSON(http.StatusConflict, errr)
 	}
 
 	return c.JSON(http.StatusOK, user)

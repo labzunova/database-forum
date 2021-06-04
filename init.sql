@@ -12,7 +12,7 @@ CREATE TABLE users (
                        nickname CITEXT NOT NULL UNIQUE,
                        fullname TEXT,
                        about TEXT,
-                       email TEXT
+                       email TEXT UNIQUE
 );
 
 CREATE TABLE forums (

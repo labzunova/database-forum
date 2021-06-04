@@ -4,6 +4,7 @@ import (
 	"DBproject/internal/forum"
 	"DBproject/models"
 	"database/sql"
+	"fmt"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx"
 )
@@ -19,28 +20,25 @@ func NewForumRepo(db *sql.DB) forum.ForumRepo {
 }
 
 func (f *forumRepo) CreateNewForum(forum models.Forum) (models.Forum, models.Error) {
+	fmt.Println("create forum")
+
 	// checkUserExists
-	err := f.DB.QueryRow("insert into forums (title, user, slug) values ($1, $2, $3)",
-		forum.Title, forum.User, forum.Slug).Scan()
-	if err != nil {
-		DBerror, _ := err.(pgx.PgError) // TODO error handling
-		switch DBerror.Code {
-		case pgerrcode.UniqueViolation: // если такой форум уже еть
-			// todo вернуть этот форум
-			return models.Forum{}, models.Error{Code: 409}
-		case pgerrcode.NotNullViolation: // если владелец не найден ???
-			return models.Forum{}, models.Error{Code: 404}
-		default:
-			return models.Forum{}, models.Error{Code: 500}
-		}
+	_, err := f.DB.Exec(`insert into forums (title, "user", slug) values ($1, $2, $3)`,
+		forum.Title, forum.User, forum.Slug)
+	fmt.Println(err)
+	if err == sql.ErrNoRows { // если владелец не найден
+		return models.Forum{}, models.Error{Code: 404}
+	}
+	if err != nil { // если такой форум уже еть
+		return models.Forum{}, models.Error{Code: 409}
 	}
 
-	return forum, models.Error{}
+	return forum, models.Error{Code: 200}
 }
 
 func (f *forumRepo) GetForum(slug string) (models.Forum, models.Error) {
 	forum := new(models.Forum)
-	err := f.DB.QueryRow("select title, user, slug, posts, threads from forums where slug = $1",
+	err := f.DB.QueryRow(`select title, "user", slug, posts, threads from forums where slug = $1`,
 		slug).Scan(&forum.Title, &forum.User, &forum.Slug, &forum.Posts, &forum.Threads)
 	if err != nil {
 		return models.Forum{}, models.Error{Code: 404}
