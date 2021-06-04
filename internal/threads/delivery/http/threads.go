@@ -53,27 +53,14 @@ func (h *Handler) ThreadGetPosts(c echo.Context) error {
 	slugOrId := c.Param("slug_or_id")
 	getPosts := new(models.ParseParamsThread)
 
-	var err error
-	getPosts.Limit, err = strconv.Atoi(c.QueryParam("limit"))
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, "limit не найден")
-	}
+	getPosts.Limit, _ = strconv.Atoi(c.QueryParam("limit"))
+	getPosts.Since, _ = strconv.Atoi(c.QueryParam("since"))
+	getPosts.Sort = c.QueryParam("sort")
+	getPosts.Desc, _ = strconv.ParseBool(c.QueryParam("desc"))
 
-	getPosts.Since, err = strconv.Atoi(c.QueryParam("since"))
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, "since не найден")
-	}
-
-	sort := c.QueryParam("sort")
-	getPosts.Sort = sort
-
-	getPosts.Desc, err = strconv.ParseBool(c.QueryParam("desc"))
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, "desc не найден")
-	}
-
-	posts, errr := h.ThreadsUcase.GetThreadPosts(slugOrId, *getPosts)
-	if errr.Code == 404 {
+	posts, err := h.ThreadsUcase.GetThreadPosts(slugOrId, *getPosts)
+	if err.Code == 404 {
+		err.Message = "Can't find forum by slug: " + slugOrId
 		return c.JSON(http.StatusNotFound, "Ветка отсутствует в форуме")
 	}
 

@@ -12,3 +12,7 @@ type ParseParamsThread struct {
 	Sort  string `lson:"since"`
 	Desc  bool   `json:"desc"`
 }
+
+type PostsToCreate struct {
+	Posts []Post
+}

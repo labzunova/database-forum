@@ -3,6 +3,7 @@ package http
 import (
 	"DBproject/internal/forum"
 	"DBproject/models"
+	"fmt"
 	"github.com/labstack/echo/v4"
 	"net/http"
 	"strconv"
@@ -30,9 +31,10 @@ func (h Handler) ForumCreate(c echo.Context) error {
 	forum, errr := h.ForumUcase.CreateNewForum(*newForum)
 	switch errr.Code {
 	case 404:
-		return c.JSON(http.StatusNotFound, "Владелец форума не найден")
+		errr.Message = "Can't find user with nickname: " + newForum.User
+		return c.JSON(http.StatusNotFound, errr)
 	case 409:
-		forumOld, _ := h.ForumUcase.GetForum(forum.Slug)
+		forumOld, _ := h.ForumUcase.GetForum(newForum.Slug)
 		return c.JSON(http.StatusConflict, forumOld)
 	}
 
@@ -45,7 +47,8 @@ func (h Handler) ForumGetOne(c echo.Context) error {
 
 	forum, err := h.ForumUcase.GetForum(slug)
 	if err.Code != 200 {
-		return c.JSON(http.StatusNotFound, "Форум отсутствует в системе")
+		err.Message = "Can't find forum with slug: " + slug
+		return c.JSON(http.StatusNotFound, err)
 	}
 
 	return c.JSON(http.StatusOK, forum)
@@ -62,12 +65,13 @@ func (h Handler) ThreadCreate(c echo.Context) error {
 	thread, err := h.ForumUcase.CreateThread(slug, *newThread)
 	switch err.Code {
 	case 404:
+		err.Message = "" + slug
 		return c.JSON(http.StatusNotFound, "Автор ветки или форум не найдены")
 	case 409:
 		return c.JSON(http.StatusConflict, thread)
 	}
 
-	return c.JSON(http.StatusOK, thread)
+	return c.JSON(http.StatusCreated, thread)
 }
 
 // ForumGetUsers Получение списка пользователей, у которых есть пост или ветка обсуждения в данном форуме.
@@ -77,21 +81,12 @@ func (h Handler) ForumGetUsers(c echo.Context) error {
 	slug := c.Param("slug")
 	getUsers := new(models.ParseParams)
 
-	var err error
-	getUsers.Limit, err = strconv.Atoi(c.QueryParam("limit"))
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, "limit не найден")
-	}
-
+	getUsers.Limit, _ = strconv.Atoi(c.QueryParam("limit"))
 	getUsers.Since = c.QueryParam("since")
+	getUsers.Desc, _ = strconv.ParseBool(c.QueryParam("desc"))
 
-	getUsers.Desc, err = strconv.ParseBool(c.QueryParam("desc"))
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, "desc не найден")
-	}
-
-	users, errr := h.ForumUcase.GetUsers(slug, *getUsers)
-	if errr.Code == 400 {
+	users, err := h.ForumUcase.GetUsers(slug, *getUsers)
+	if err.Code == 400 {
 		return c.JSON(http.StatusNotFound, "Форум отсутствует в системе")
 	}
 
@@ -104,22 +99,15 @@ func (h Handler) ForumGetThreads(c echo.Context) error {
 	slug := c.Param("slug")
 	getThreads := new(models.ParseParams)
 
-	var err error
-	getThreads.Limit, err = strconv.Atoi(c.QueryParam("limit")) // todo if zero?
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, "limit не найден")
-	}
-
+	getThreads.Limit, _ = strconv.Atoi(c.QueryParam("limit")) // todo if zero?
 	getThreads.Since = c.QueryParam("since")
+	getThreads.Desc, _ = strconv.ParseBool(c.QueryParam("desc"))
+	fmt.Println(getThreads)
 
-	getThreads.Desc, err = strconv.ParseBool(c.QueryParam("desc"))
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, "desc не найден")
-	}
-
-	threads, errr := h.ForumUcase.GetThreads(slug, *getThreads)
-	if errr.Code != 200 {
-		return c.JSON(http.StatusNotFound, "Форум отсутствует в системе")
+	threads, err := h.ForumUcase.GetThreads(slug, *getThreads)
+	if err.Code != 200 {
+		err.Message = "Can't find forum by slug: " + slug
+		return c.JSON(http.StatusNotFound, err)
 	}
 
 	return c.JSON(http.StatusOK, threads)

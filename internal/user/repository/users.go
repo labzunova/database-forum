@@ -18,7 +18,7 @@ func NewUsersRepo(db *sql.DB) user.UserRepo {
 }
 
 func (db *usersRepo) CreateUser(profile models.User) models.Error {
-	fmt.Println("create user")
+	fmt.Println("create user", profile)
 
 	_, err := db.DB.Exec(`insert into users (nickname, fullname, about, email) values ($1,$2,$3,$4)`,
 		profile.Nickname, profile.FullName, profile.About, profile.Email)
@@ -34,7 +34,7 @@ func (db *usersRepo) CreateUser(profile models.User) models.Error {
 }
 
 func (db *usersRepo) GetUser(nickname string) (models.User, models.Error) {
-	fmt.Println("get user")
+	fmt.Println("get user ", nickname)
 
 	user := models.User{}
 	err := db.DB.QueryRow("select nickname, fullname, about, email from users where nickname=$1", nickname).
@@ -50,7 +50,7 @@ func (db *usersRepo) GetUser(nickname string) (models.User, models.Error) {
 }
 
 func (db *usersRepo) UpdateUser(profile models.User) (models.User, models.Error) {
-	fmt.Println("update user")
+	fmt.Println("update user", profile)
 
 	err := db.DB.QueryRow(`
 		update users set 
@@ -60,7 +60,6 @@ func (db *usersRepo) UpdateUser(profile models.User) (models.User, models.Error)
 		where nickname=$4
 		returning fullname, about, email`, profile.FullName, profile.About, profile.Email, profile.Nickname).
 		Scan(&profile.FullName, &profile.About, &profile.Email)
-	fmt.Println(profile)
 	//dbError, ok := err.(pgx.PgError)
 	if err == sql.ErrNoRows {
 		return models.User{}, models.Error{Code: 404}

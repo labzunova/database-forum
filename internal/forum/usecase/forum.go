@@ -32,7 +32,15 @@ func (f forumUsecase) GetUsers(slug string, params models.ParseParams) ([]models
 }
 
 func (f forumUsecase) GetThreads(slug string, params models.ParseParams) ([]models.Thread, models.Error) {
-	return f.forumRepository.GetThreads(slug, params)
+	threads, err := f.forumRepository.GetThreads(slug, params)
+	if err.Code == 404 {
+		_, errr := f.forumRepository.GetForum(slug)
+		if errr.Code == 200 {
+			return threads, errr
+		}
+	}
+
+	return threads, err
 }
 
 

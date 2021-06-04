@@ -3,6 +3,7 @@ package http
 import (
 	"DBproject/internal/posts"
 	"DBproject/models"
+	"fmt"
 	"github.com/labstack/echo/v4"
 	"net/http"
 	"strconv"
@@ -70,9 +71,11 @@ func (h *Handler) PostUpdate(c echo.Context) error {
 func (h *Handler) PostsCreate(c echo.Context) error {
 	slug := c.Param("slug_or_id")
 	newPosts := make([]models.Post, 0)
-	if err := c.Bind(newPosts); err != nil {
-		return err
+	//newPosts := models.PostsToCreate{}
+	if err := c.Bind(&newPosts); err != nil {
+		return c.JSON(http.StatusCreated, newPosts)
 	}
+	fmt.Println("AAAAAAAAAAAAAA")
 
 	posts, err := h.PostsUcase.CreatePosts(slug, newPosts)
 	switch err.Code {

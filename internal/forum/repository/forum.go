@@ -5,8 +5,7 @@ import (
 	"DBproject/models"
 	"database/sql"
 	"fmt"
-	"github.com/jackc/pgerrcode"
-	"github.com/jackc/pgx"
+	"time"
 )
 
 type forumRepo struct {
@@ -20,23 +19,46 @@ func NewForumRepo(db *sql.DB) forum.ForumRepo {
 }
 
 func (f *forumRepo) CreateNewForum(forum models.Forum) (models.Forum, models.Error) {
-	fmt.Println("create forum")
+	fmt.Println("create forum", forum)
 
-	// checkUserExists
-	_, err := f.DB.Exec(`insert into forums (title, "user", slug) values ($1, $2, $3)`,
-		forum.Title, forum.User, forum.Slug)
-	fmt.Println(err)
-	if err == sql.ErrNoRows { // если владелец не найден
+	err := f.DB.QueryRow("select nickname from users where nickname=$1", forum.User).Scan(&forum.User)
+	if err != nil {
 		return models.Forum{}, models.Error{Code: 404}
 	}
-	if err != nil { // если такой форум уже еть
+
+	// checkUserExists
+	_, err = f.DB.Exec(`insert into forums 
+    	(title, "user", slug) 
+    	values ($1, $2, $3) returning "user"`,
+		forum.Title, forum.User, forum.Slug)
+	fmt.Println("create err ", err)
+	//dbErr, ok := err.(pgx.PgError)
+	//fmt.Println("create err ", dbErr, ok, dbErr.Code, dbErr.Message)
+	//
+	//if ok {
+	//		if dbErr.Code == pgerrcode.NotNullViolation || dbErr.Code == pgerrcode.ForeignKeyViolation { // если владелец не найден
+	//		return models.Forum{}, models.Error{Code: 404}
+	//	}
+	//	if dbErr.Code == pgerrcode.UniqueViolation { // если такой форум уже еть
+	//		return models.Forum{}, models.Error{Code: 409}
+	//	}
+	//}
+
+	if err != nil && err != sql.ErrNoRows { // если такой форум уже еть
+		fmt.Println("409")
 		return models.Forum{}, models.Error{Code: 409}
+	}
+	if err == sql.ErrNoRows { // если владелец не найден
+		fmt.Println("404")
+		return models.Forum{}, models.Error{Code: 404}
 	}
 
 	return forum, models.Error{Code: 200}
 }
 
 func (f *forumRepo) GetForum(slug string) (models.Forum, models.Error) {
+	fmt.Println("get forum", slug)
+
 	forum := new(models.Forum)
 	err := f.DB.QueryRow(`select title, "user", slug, posts, threads from forums where slug = $1`,
 		slug).Scan(&forum.Title, &forum.User, &forum.Slug, &forum.Posts, &forum.Threads)
@@ -48,23 +70,34 @@ func (f *forumRepo) GetForum(slug string) (models.Forum, models.Error) {
 }
 
 func (f *forumRepo) CreateThread(slug string, thread models.Thread) (models.Thread, models.Error) {
+	fmt.Println("create thread: ", slug, thread)
+
 	err := f.DB.QueryRow(
 		`
 	insert into threads 
-    (title, author, message, forum, slug) 
-	values ($2,$3,$4,$5) 
-	returning id, u.nickname, created`,
-		thread.Title, thread.Author, thread.Message, thread.Forum, slug).Scan(&thread.ID, &thread.Author)
+    (title, author, message, forum, slug, created) 
+	values ($1,$2,$3,$4,$5,$6) 
+	returning id`,
+		thread.Title, thread.Author, thread.Message, slug, thread.Slug, thread.Created).Scan(&thread.ID)
 
-	DBerror, _ := err.(pgx.PgError) // TODO error handling
-	switch DBerror.Code {
-	case pgerrcode.UniqueViolation: // если такой тред уже еть
-		return thread, models.Error{Code: 409}
-	case pgerrcode.NotNullViolation: // если владелец не найден ???
+	//DBerror, _ := err.(pgx.PgError) // TODO error handling
+	//switch DBerror.Code {
+	//case pgerrcode.UniqueViolation: // если такой тред уже еть
+	//	return thread, models.Error{Code: 409}
+	//case pgerrcode.NotNullViolation: // если владелец не найден ???
+	//	return models.Thread{}, models.Error{Code: 404}
+	//}
+fmt.Println(err)
+	if err != nil && err != sql.ErrNoRows { // если такой форум уже еть
+		fmt.Println("409")
+		return models.Thread{}, models.Error{Code: 409}
+	}
+	if err == sql.ErrNoRows { // если владелец не найден
+		fmt.Println("404")
 		return models.Thread{}, models.Error{Code: 404}
 	}
-
-	return thread, models.Error{Code: 200}// todo
+	    fmt.Println(thread)
+	return thread, models.Error{Code: 201}
 }
 
 func (f *forumRepo) GetUsers(slug string, params models.ParseParams) ([]models.User, models.Error) {
@@ -122,57 +155,79 @@ func (f *forumRepo) GetUsers(slug string, params models.ParseParams) ([]models.U
 }
 
 func (f *forumRepo) GetThreads(slug string, params models.ParseParams) ([]models.Thread, models.Error) {
+	fmt.Println("get threads: ", slug, params)
+
 	var queryParams []interface{}
 	query := `
-		select t.id, t.title, t.author, t.forum, t.message, t.votes, t.slug, t.created from
-		threads t where t.slug = $1 
-	`
+		select id, title, author, message, votes, slug, created, forum from threads 
+		where forum = $1 `
 	queryParams = append(queryParams, slug)
 
 	if params.Since != "" {
-		query += " and created > $2 "
-		queryParams = append(queryParams, params.Since)
+		fmt.Println("with since")
+		if params.Desc {
+			query += "and created <= $2 "
+		} else {
+			query += "and created >= $2 "
+		}
+
+		layout := "2006-01-02T15:04:05.000Z"
+		str := params.Since
+		t, _ := time.Parse(layout, str)
+		t = t.Add(time.Hour * 3) // TODO ВРЕМЕННО ДЛЯ КОМПА
+
+		queryParams = append(queryParams,t)
 	}
 
 	if !params.Desc {
-		query += " order by t.forum"
+		query += "order by created "
 	} else {
-		query += " order by t.forum desc"
+		fmt.Println("with desc")
+		query += "order by created desc "
 	}
 
 	if params.Limit != 0 {
 		if params.Since == "" {
-			query += "  LIMIT $2"
+			fmt.Println("with limit1")
+			query += "LIMIT $2"
 		} else {
-			query += "  LIMIT $3"
+			fmt.Println("with limit2")
+			query += "LIMIT $3"
 		}
 		queryParams = append(queryParams, params.Limit)
 	}
 
-	forumUsers, err := f.DB.Query(query, queryParams)
+	forumThreads, err := f.DB.Query(query, queryParams...)
 	if err != nil {
 		return []models.Thread{}, models.Error{Code: 404}
 	}
 
 	threads := make([]models.Thread, 0)
-	for forumUsers.Next() {
+	for forumThreads.Next() {
+
 		thread := new(models.Thread)
-		err = forumUsers.Scan(
+		err = forumThreads.Scan(
 			&thread.ID,
 			&thread.Title,
 			&thread.Author,
-			&thread.Forum,
 			&thread.Message,
 			&thread.Votes,
 			&thread.Slug,
 			&thread.Created,
+			&thread.Forum,
 		)
+
+		thread.Created = thread.Created.Add(-time.Hour * 3) // TODO ВРЕМЕННО ДЛЯ КОМПА
+
 		if err != nil {
-			return  []models.Thread{}, models.Error{Code: 500}
+			return  []models.Thread{}, models.Error{Code: 404}
 		}
 
 		threads = append(threads, *thread)
 	}
 
+	if len(threads) == 0 {
+		return threads, models.Error{Code: 404}
+	}
 	return threads, models.Error{Code: 200}
 }
