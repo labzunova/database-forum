@@ -24,12 +24,12 @@ type Status struct {
 //      - fullname
 //      - email
 type User struct {
+	About    string `json:"about"`    // Описание пользователя
+	Email    string `json:"email"`    // Почтовый адрес пользователя (уникальное поле)
+	FullName string `json:"fullname"` // Полное имя пользователя
 	Nickname string `json:"nickname"` //Имя пользователя (уникальное поле)
 	//Данное поле допускает только латиницу, цифры и знак подчеркивания.
 	//Сравнение имени регистронезависимо
-	FullName string `json:"fullname"` // Полное имя пользователя
-	About    string `json:"about"`    // Описание пользователя
-	Email    string `json:"email"`    // Почтовый адрес пользователя (уникальное поле)
 }
 
 // Forum Информация о форуме.
@@ -38,9 +38,9 @@ type User struct {
 //      - user
 //      - slug
 type Forum struct {
+	Slug    string `json:"slug"`    // Человекопонятный URL
 	Title   string `json:"title"`   // Название форума
 	User    string `json:"user"`    // Nickname пользователя, который отвечает за форум
-	Slug    string `json:"slug"`    // Человекопонятный URL
 	Posts   int    `json:"posts"`   // Общее кол-во сообщений в данном форуме
 	Threads int    `json:"threads"` // Общее кол-во ветвей обсуждения в данном форуме
 }

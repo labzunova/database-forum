@@ -30,29 +30,29 @@ import (
 
 func router(e *echo.Echo, user user.UserHandler, forum forum.ForumHandler, posts posts.PostsHandler,
 	threads threads.ThreadsHandler, service service.ServiceHandler) {
-	e.POST("/forum/create", forum.ForumCreate)
-	e.GET("/forum/:slug/details", forum.ForumGetOne)
-	e.POST("/forum/:slug/create", forum.ThreadCreate)
-	e.GET("/forum/:slug/users", forum.ForumGetUsers)
-	e.GET(" /forum/:slug/threads", forum.ForumGetThreads)
-	e.GET("/post/:id/details", posts.PostGetOne)
-	e.POST("/post/:id/details", posts.PostUpdate)
-	e.POST("/service/clear", service.Clear)
-	e.GET("/service/status", service.Status)
-	e.POST("/thread/:slug_or_id/create", posts.PostsCreate)
-	e.GET("/thread/:slug_or_id/details", threads.ThreadGetOne)
-	e.POST("/thread/:slug_or_id/details", threads.ThreadUpdate)
-	e.GET("/thread/:slug_or_id/posts", threads.ThreadGetPosts) // todo
-	e.POST("/thread/:slug_or_id/vote", threads.ThreadVote)
-	e.POST("/user/:nickname/create", user.UserCreate)
-	e.GET("/user/:nickname/profile", user.UserGetOne)
-	e.POST("/user/:nickname/profile", user.UserUpdate)
+	e.POST("/api/forum/create", forum.ForumCreate)
+	e.GET("/api/forum/:slug/details", forum.ForumGetOne)
+	e.POST("/api/forum/:slug/create", forum.ThreadCreate)
+	e.GET("/api/forum/:slug/users", forum.ForumGetUsers)
+	e.GET("/api/forum/:slug/threads", forum.ForumGetThreads)
+	e.GET("/api/post/:id/details", posts.PostGetOne)
+	e.POST("/api/post/:id/details", posts.PostUpdate)
+	e.POST("/api/service/clear", service.Clear)
+	e.GET("/api/service/status", service.Status)
+	e.POST("/api/thread/:slug_or_id/create", posts.PostsCreate)
+	e.GET("/api/thread/:slug_or_id/details", threads.ThreadGetOne)
+	e.POST("/api/thread/:slug_or_id/details", threads.ThreadUpdate)
+	e.GET("/api/thread/:slug_or_id/posts", threads.ThreadGetPosts) // todo
+	e.POST("/api/thread/:slug_or_id/vote", threads.ThreadVote)
+	e.POST("/api/user/:nickname/create", user.UserCreate)
+	e.GET("/api/user/:nickname/profile", user.UserGetOne)
+	e.POST("/api/user/:nickname/profile", user.UserUpdate)
 }
 
 func main() {
 	e := echo.New()
 
-	dsn := fmt.Sprintf("user=%s password=%s dbname=%s", "labzunova", 1111, "forums")
+	dsn := fmt.Sprintf("user=%s password=%s dbname=%s", "lbznv", "1111", "forums")
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		log.Fatal(err)

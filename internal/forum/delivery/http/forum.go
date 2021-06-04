@@ -32,7 +32,8 @@ func (h Handler) ForumCreate(c echo.Context) error {
 	case 404:
 		return c.JSON(http.StatusNotFound, "Владелец форума не найден")
 	case 409:
-		return c.JSON(http.StatusConflict, forum)
+		forumOld, _ := h.ForumUcase.GetForum(forum.Slug)
+		return c.JSON(http.StatusConflict, forumOld)
 	}
 
 	return c.JSON(http.StatusCreated, forum)
