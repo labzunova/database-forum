@@ -89,33 +89,39 @@ func (db *postsRepo) UpdatePost(id int, message string) (models.Post, models.Err
 func (db *postsRepo) CreatePosts(thread models.Thread, posts []models.Post) ([]models.Post, models.Error) {
 	createdTime := time.Now()
 
- // todo переделать без подзапроса(в бд нужно решить с уникальностью slug)
 	query := `insert into posts (parent, author, message, forum, thread, created) values `
 
-	for _, post := range posts {
-		query += fmt.Sprintf(`(%d,'%s','%s','%s', %d, $1)`, post.Parent, post.Author, post.Message, thread.Forum, thread.ID)
+	last := len(posts) - 1
+	for i, post := range posts {
+		if i == last {
+			query += fmt.Sprintf(`(%d,'%s','%s','%s', %d, $1) `, post.Parent, post.Author, post.Message, thread.Forum, thread.ID)
+		} else {
+			query += fmt.Sprintf(`(%d,'%s','%s','%s', %d, $1), `, post.Parent, post.Author, post.Message, thread.Forum, thread.ID)
+		}
 	}
 
 	query += " returning id, created"
 
 	fmt.Println(query)
 	rows, err := db.DB.Query(query, createdTime)
-	fmt.Println(err)
+	fmt.Println("ADDING POST ERROR ", err)
 	if err != nil {
 		return nil, models.Error{Code: 500}
 	}
 
 	i := 0
 	for rows.Next() {
-		err = rows.Scan(
-			&posts[i].ID, &posts[i].Created)
+		fmt.Println("scan iteration")
+		err = rows.Scan(&posts[i].ID, &posts[i].Created)
 		if err != nil {
 			return nil, models.Error{Code: 500}
 		}
 		posts[i].Forum = thread.Forum
 		posts[i].Thread = thread.ID
+		fmt.Println(posts[i])
+		i++
 	}
-
+fmt.Println(posts)
 	return posts, models.Error{}
 }
 

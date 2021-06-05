@@ -51,14 +51,14 @@ type Forum struct {
 //      - author
 //      - message
 type Thread struct {
-	ID      int       `json:"id"`      // Идентификатор ветки обсуждения.
-	Title   string    `json:"title"`   // Заголовок ветки обсуждения.
 	Author  string    `json:"author"`  // Пользователь, создавший данную тему.
-	Forum   string    `json:"forum"`   // Форум, в котором расположена данная ветка обсуждения.
-	Message string    `json:"message"` // Описание ветки обсуждения.
-	Votes   int       `json:"votes"`   // Кол-во голосов непосредственно за данное сообщение форума.
-	Slug    string    `json:"slug"`    // Человекопонятный URL
 	Created time.Time `json:"created"` // Дата создания ветки на форуме.
+	Forum   string    `json:"forum"`   // Форум, в котором расположена данная ветка обсуждения.
+	ID      int       `json:"id"`      // Идентификатор ветки обсуждения.
+	Message string    `json:"message"` // Описание ветки обсуждения.
+	Title   string    `json:"title"`   // Заголовок ветки обсуждения.
+	Slug    string    `json:"slug"`    // Человекопонятный URL
+	Votes   int       `json:"votes"`   // Кол-во голосов непосредственно за данное сообщение форума.
 }
 
 // Post Сообщение внутри ветки обсуждения на форуме.

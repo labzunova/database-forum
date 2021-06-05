@@ -3,6 +3,7 @@ package usecase
 import (
 	"DBproject/internal/threads"
 	"DBproject/models"
+	"fmt"
 	"strconv"
 )
 
@@ -39,27 +40,30 @@ func (t threadsUsecase) GetThreadPosts(slugOrId string, params models.ParseParam
 
 func (t threadsUsecase) VoteThread(slugOrId string, vote models.Vote) (models.Thread, models.Error) {
 	id := t.SlugOrID(slugOrId)
+	fmt.Println("slug or id ",slugOrId, id)
 	if id != 0 {
+		fmt.Println("vote by id")
 		err := t.threadsRepository.VoteThreadById(id, vote)
 		if err.Code != 200 {
 			return models.Thread{}, err
 		}
-		return t.threadsRepository.GetThread(slugOrId, 0)
+		return t.threadsRepository.GetThread("", id)
 	}
 
+	fmt.Println("vote by slug")
 	err := t.threadsRepository.VoteThreadBySlug(slugOrId, vote)
 	if err.Code != 200 {
 		return models.Thread{}, err
 	}
 
-	return t.threadsRepository.GetThread("", id)
+	return t.threadsRepository.GetThread(slugOrId, 0)
 }
 
 // extra
 
 func (t threadsUsecase) SlugOrID(slugOrId string) int {
 	id, errID := strconv.Atoi(slugOrId)
-	if errID != nil {
+	if errID == nil {
 		return id
 	}
 

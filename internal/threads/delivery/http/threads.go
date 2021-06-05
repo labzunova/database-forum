@@ -3,9 +3,11 @@ package http
 import (
 	"DBproject/internal/threads"
 	"DBproject/models"
+	"fmt"
 	"github.com/labstack/echo/v4"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type Handler struct {
@@ -25,8 +27,10 @@ func (h *Handler) ThreadGetOne(c echo.Context) error {
 
 	thread, err :=  h.ThreadsUcase.GetThread(slug)
 	if err.Code == 404 {
-		return c.JSON(http.StatusNotFound, "Ветка отсутствует в форуме")
+		return c.JSON(http.StatusNotFound, err)
 	}
+
+	thread.Created = thread.Created.Add(-time.Hour * 3) // TODO ВРЕМЕННО ДЛЯ КОМПА
 
 	return c.JSON(http.StatusOK, thread)
 }
@@ -41,8 +45,10 @@ func (h *Handler) ThreadUpdate(c echo.Context) error {
 
 	thread, err :=  h.ThreadsUcase.UpdateThread(slugOrId, *newThread)
 	if err.Code == 404 {
-		return c.JSON(http.StatusNotFound, "Ветка отсутствует в форуме")
+		return c.JSON(http.StatusNotFound, err)
 	}
+
+	thread.Created = thread.Created.Add(-time.Hour * 3) // TODO ВРЕМЕННО ДЛЯ КОМПА
 
 	return c.JSON(http.StatusOK, thread)
 }
@@ -70,6 +76,7 @@ func (h *Handler) ThreadGetPosts(c echo.Context) error {
 // ThreadVote Изменение голоса за ветвь обсуждения.
 // Один пользователь учитывается только один раз и может изменить своё мнение.
 func (h *Handler) ThreadVote(c echo.Context) error {
+	fmt.Println("VOTE handler")
 	newVote := new(models.Vote)
 	if err := c.Bind(newVote); err != nil {
 		return err
@@ -83,6 +90,8 @@ func (h *Handler) ThreadVote(c echo.Context) error {
 	if err.Code != 200 {
 		return c.JSON(http.StatusInternalServerError, "Error")
 	}
+
+	thread.Created = thread.Created.Add(-time.Hour * 3) // TODO ВРЕМЕННО ДЛЯ КОМПА
 
 	return c.JSON(http.StatusOK, thread)
 }

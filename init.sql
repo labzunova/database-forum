@@ -48,7 +48,7 @@ CREATE TABLE posts (
                        isEdited BOOLEAN NOT NULL DEFAULT FALSE,
                        "forum" CITEXT REFERENCES forums(slug) ON DELETE CASCADE NOT NULL,
                        "thread" INTEGER REFERENCES threads(id) ON DELETE CASCADE NOT NULL,-- ??? надо бы slug
-                       created TIMESTAMP NOT NULL
+                       created TIMESTAMP NOT NULL,
 );
 
 CREATE TABLE forum_users (

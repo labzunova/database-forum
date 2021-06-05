@@ -115,14 +115,18 @@ func (f *forumRepo) GetUsers(slug string, params models.ParseParams) ([]models.U
 	queryParametres = append(queryParametres, slug)
 
 	if params.Since != "" {
-		query += " and nickname > $2 "
+		if params.Desc {
+			query += " and nickname < $2 "
+		} else {
+			query += " and nickname > $2 "
+		}
 		queryParametres = append(queryParametres, params.Since)
 	}
 
 	if !params.Desc {
-		query += " order by uf.nickname"
+		query += " order by uf.nickname ASC "
 	} else {
-		query += " order by uf.nickname desc"
+		query += " order by uf.nickname DESC "
 	}
 
 	if params.Limit != 0 {
