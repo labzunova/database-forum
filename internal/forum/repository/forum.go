@@ -72,31 +72,37 @@ func (f *forumRepo) GetForum(slug string) (models.Forum, models.Error) {
 func (f *forumRepo) CreateThread(slug string, thread models.Thread) (models.Thread, models.Error) {
 	fmt.Println("create thread: ", slug, thread)
 
-	err := f.DB.QueryRow(
-		`
+	// pgerrcode.NotNullViolation не работает todo
+	var id int
+	err := f.DB.QueryRow("select id from users where nickname=$1", thread.Author).Scan(&id)
+	if err == sql.ErrNoRows {
+		fmt.Println("404")
+		return models.Thread{}, models.Error{Code: 404, Message: "Can't find thread author by nickname: "+thread.Author}
+	}
+	var slugg string
+	err = f.DB.QueryRow("select slug from forums where slug = $1", slug).Scan(&slugg)
+	if err == sql.ErrNoRows {
+		fmt.Println("404")
+		return models.Thread{}, models.Error{Code: 404, Message: "Can't find thread forum by slug: "+thread.Slug}
+	}
+
+	errr := f.DB.QueryRow(`
 	insert into threads 
     (title, author, message, forum, slug, created) 
-	values ($1,$2,$3,$4,$5,$6) 
-	returning id`,
-		thread.Title, thread.Author, thread.Message, slug, thread.Slug, thread.Created).Scan(&thread.ID)
-
-	//DBerror, _ := err.(pgx.PgError) // TODO error handling
-	//switch DBerror.Code {
-	//case pgerrcode.UniqueViolation: // если такой тред уже еть
-	//	return thread, models.Error{Code: 409}
-	//case pgerrcode.NotNullViolation: // если владелец не найден ???
-	//	return models.Thread{}, models.Error{Code: 404}
-	//}
-fmt.Println(err)
-	if err != nil && err != sql.ErrNoRows { // если такой форум уже еть
+	values ($1,$2,$3,(select slug from forums where slug = $4),$5,$6) 
+	returning id, forum`,
+		thread.Title, thread.Author, thread.Message, slug, thread.Slug, thread.Created).Scan(&thread.ID, &thread.Forum)
+fmt.Println(errr)
+	if errr != nil && errr != sql.ErrNoRows { // если такой форум уже еть
 		fmt.Println("409")
 		return models.Thread{}, models.Error{Code: 409}
 	}
-	if err == sql.ErrNoRows { // если владелец не найден
+	if errr == sql.ErrNoRows {
 		fmt.Println("404")
-		return models.Thread{}, models.Error{Code: 404}
+		return models.Thread{}, models.Error{Code: 404, Message: "Can't find thread forum by slug: "+thread.Slug}
 	}
-	    fmt.Println(thread)
+
+	fmt.Println(thread)
 	return thread, models.Error{Code: 201}
 }
 
@@ -230,4 +236,18 @@ func (f *forumRepo) GetThreads(slug string, params models.ParseParams) ([]models
 		return threads, models.Error{Code: 404}
 	}
 	return threads, models.Error{Code: 200}
+}
+
+func (f *forumRepo) GetThreadBySlug(slug string) (models.Thread, models.Error) {
+	thread := models.Thread{}
+	_ = f.DB.QueryRow("select id, title, author, message, votes, slug, created, forum from threads where slug = $1", slug).
+		Scan(&thread.ID,
+		&thread.Title,
+		&thread.Author,
+		&thread.Message,
+		&thread.Votes,
+		&thread.Slug,
+		&thread.Created,
+		&thread.Forum)
+	return thread, models.Error{Code: 409}
 }

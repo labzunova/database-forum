@@ -66,14 +66,14 @@ type Thread struct {
 //      - author
 //      - message
 type Post struct { //  Сообщение внутри ветки обсуждения на форуме.
-	ID       int       `json:"id"`       // Идентификатор данного сообщения.
-	Parent   int       `json:"parent"`   // Идентификатор родительского сообщения (0 - корневое сообщение обсуждения).
 	Author   string    `json:"author"`   // Автор, написавший данное сообщение.
-	Message  string    `json:"message"`  // Собственно сообщение форума.
-	IsEdited bool      `json:"isEdited"` // Истина, если данное сообщение было изменено.
-	Forum    string    `json:"forum"`    // Идентификатор форума (slug) данного сообещния.
-	Thread   string    `json:"thread"`   // Идентификатор форума (slug) данного сообещния.
 	Created  time.Time `json:"created"`  // Дата создания сообщения на форуме.
+	Forum    string    `json:"forum"`    // Идентификатор форума (slug) данного сообещния.
+	ID       int       `json:"id"`       // Идентификатор данного сообщения.
+	Message  string    `json:"message"`  // Собственно сообщение форума.
+	Parent   int       `json:"parent"`   // Идентификатор родительского сообщения (0 - корневое сообщение обсуждения).
+	IsEdited bool      `json:"isEdited"` // Истина, если данное сообщение было изменено.
+	Thread   int    `json:"thread"`   // Идентификатор форума (slug) данного сообещния.
 }
 
 // PostUpdate Сообщение для обновления сообщения внутри ветки на форуме. Пустые параметры остаются без изменений.

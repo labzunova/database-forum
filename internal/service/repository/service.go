@@ -1,4 +1,4 @@
-package repository
+	package repository
 
 import (
 	"DBproject/internal/service"
@@ -24,11 +24,11 @@ func (s serviceRepo) Clear() error {
 }
 
 func (s serviceRepo) Status() service.DBinfo {
-	info := new(service.DBinfo) // todo errors handling
-	_ = s.DB.QueryRow("select count(*) from forums").Scan(info.Forums)
-	_ = s.DB.QueryRow("select count(*) from users").Scan(info.Users)
-	_ = s.DB.QueryRow("select count(*) from posts").Scan(info.Posts)
-	_ = s.DB.QueryRow("select count(*) from threads").Scan(info.Threads)
+	info := new(service.DBinfo)
+	_ = s.DB.QueryRow("select count(*) from forums").Scan(&info.Forums)
+	_ = s.DB.QueryRow("select count(*) from users").Scan(&info.Users)
+	_ = s.DB.QueryRow("select count(*) from posts").Scan(&info.Posts)
+	_ = s.DB.QueryRow("select count(*) from threads").Scan(&info.Threads)
 
 	return *info
 }

@@ -30,12 +30,14 @@ CREATE TABLE forums (
 CREATE TABLE threads (
                          id SERIAL NOT NULL PRIMARY KEY,
                          title TEXT NOT NULL,
-                         slug CITEXT,
+                         slug CITEXT unique, -- ????????????????
                          "author" CITEXT REFERENCES users(nickname) ON DELETE CASCADE NOT NULL,
-                         "forum" CITEXT REFERENCES forums(slug) ON DELETE CASCADE  NOT NULL,
-                         message TEXT UNIQUE,
-                         votes INT DEFAULT 0,
-                         created TIMESTAMP
+    -- "forum" CITEXT REFERENCES forums(slug) ON DELETE CASCADE  NOT NULL,
+                         forum CITEXT NOT NULL,
+                         FOREIGN KEY (forum) REFERENCES forums (slug),
+                         message TEXT NOT NULL,
+                         votes INT DEFAULT 0 NOT NULL,
+                         created TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 CREATE TABLE posts (
@@ -45,7 +47,7 @@ CREATE TABLE posts (
                        message TEXT NOT NULL,
                        isEdited BOOLEAN NOT NULL DEFAULT FALSE,
                        "forum" CITEXT REFERENCES forums(slug) ON DELETE CASCADE NOT NULL,
-                       "thread" INTEGER REFERENCES threads(id) ON DELETE CASCADE NOT NULL,
+                       "thread" INTEGER REFERENCES threads(id) ON DELETE CASCADE NOT NULL,-- ??? надо бы slug
                        created TIMESTAMP NOT NULL
 );
 
@@ -56,7 +58,7 @@ CREATE TABLE forum_users (
 
 CREATE TABLE votes (
                        "user" CITEXT REFERENCES users(nickname), -- nickname?
-                       thread TEXT REFERENCES threads(slug),
+                       thread INTEGER REFERENCES threads(id), -- ??? надо бы slug
                        vote INTEGER,
                        UNIQUE (thread, "user")
 );

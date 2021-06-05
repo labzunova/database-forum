@@ -27,4 +27,6 @@ type ForumRepo interface {
 	CreateThread(slug string, thread models.Thread) (models.Thread, models.Error)
 	GetUsers(slug string, params models.ParseParams) ([]models.User, models.Error)
 	GetThreads(slug string, params models.ParseParams) ([]models.Thread, models.Error)
+
+	GetThreadBySlug(slug string) (models.Thread, models.Error)
 }

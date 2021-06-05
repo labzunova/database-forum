@@ -60,7 +60,7 @@ func (p postsUsecase) CreatePosts(slug string, posts []models.Post) ([]models.Po
 	var thread models.Thread
 	var err models.Error
 	id, errID := strconv.Atoi(slug)
-	if errID != nil {
+	if errID == nil {
 		thread, err = p.postsRepository.GetThreadAndForumById(id)
 		if err.Code == 404 {
 			return nil, err

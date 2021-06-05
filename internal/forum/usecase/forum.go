@@ -3,6 +3,7 @@ package usecase
 import (
 	"DBproject/internal/forum"
 	"DBproject/models"
+	"github.com/google/uuid"
 )
 
 type forumUsecase struct {
@@ -24,7 +25,20 @@ func (f forumUsecase) GetForum(id string) (models.Forum, models.Error) {
 }
 
 func (f forumUsecase) CreateThread(slug string, thread models.Thread) (models.Thread, models.Error) {
-	return f.forumRepository.CreateThread(slug, thread)
+	checkSlug := true
+	if thread.Slug == "" {
+		thread.Slug = uuid.New().String()
+		checkSlug = false
+	}
+	threadNew, err := f.forumRepository.CreateThread(slug, thread)
+	if err.Code == 409 {
+		return f.forumRepository.GetThreadBySlug(thread.Slug)
+	}
+
+	if !checkSlug {
+		threadNew.Slug = ""
+	}
+	return threadNew, err
 }
 
 func (f forumUsecase) GetUsers(slug string, params models.ParseParams) ([]models.User, models.Error) {

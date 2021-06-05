@@ -70,11 +70,11 @@ func (h *Handler) ThreadGetPosts(c echo.Context) error {
 // ThreadVote Изменение голоса за ветвь обсуждения.
 // Один пользователь учитывается только один раз и может изменить своё мнение.
 func (h *Handler) ThreadVote(c echo.Context) error {
-	slug := c.Param("slug_or_id")
 	newVote := new(models.Vote)
 	if err := c.Bind(newVote); err != nil {
 		return err
 	}
+	slug := c.Param("slug_or_id")
 
 	thread, err :=  h.ThreadsUcase.VoteThread(slug, *newVote)
 	if err.Code == 404 {

@@ -3,7 +3,7 @@ package http
 import (
 	"DBproject/internal/posts"
 	"DBproject/models"
-	"fmt"
+	"encoding/json"
 	"github.com/labstack/echo/v4"
 	"net/http"
 	"strconv"
@@ -71,19 +71,22 @@ func (h *Handler) PostUpdate(c echo.Context) error {
 func (h *Handler) PostsCreate(c echo.Context) error {
 	slug := c.Param("slug_or_id")
 	newPosts := make([]models.Post, 0)
-	//newPosts := models.PostsToCreate{}
-	if err := c.Bind(&newPosts); err != nil {
+	err := json.NewDecoder(c.Request().Body).Decode(&newPosts)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err)
+	}
+
+	if len(newPosts) == 0 {
 		return c.JSON(http.StatusCreated, newPosts)
 	}
-	fmt.Println("AAAAAAAAAAAAAA")
 
-	posts, err := h.PostsUcase.CreatePosts(slug, newPosts)
-	switch err.Code {
+	posts, errr := h.PostsUcase.CreatePosts(slug, newPosts)
+	switch errr.Code {
 	case 404:
 		return c.JSON(http.StatusNotFound, "Ветка отсутствует в базе")
 	case 409:
 		return c.JSON(http.StatusConflict, "Хотя бы один пост отсутствует в ветке")
 	}
 
-	return c.JSON(http.StatusOK, posts)
+	return c.JSON(http.StatusCreated, posts)
 }
