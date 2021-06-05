@@ -5,14 +5,16 @@ import (
 	"DBproject/models"
 	"database/sql"
 	"fmt"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx"
 	"time"
 )
 
 type forumRepo struct {
-	DB *sql.DB
+	DB *pgx.ConnPool
 }
 
-func NewForumRepo(db *sql.DB) forum.ForumRepo {
+func NewForumRepo(db *pgx.ConnPool) forum.ForumRepo {
 	return &forumRepo{
 		DB: db,
 	}
@@ -75,15 +77,9 @@ func (f *forumRepo) CreateThread(slug string, thread models.Thread) (models.Thre
 	// pgerrcode.NotNullViolation не работает todo
 	var id int
 	err := f.DB.QueryRow("select id from users where nickname=$1", thread.Author).Scan(&id)
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		fmt.Println("404")
 		return models.Thread{}, models.Error{Code: 404, Message: "Can't find thread author by nickname: "+thread.Author}
-	}
-	var slugg string
-	err = f.DB.QueryRow("select slug from forums where slug = $1", slug).Scan(&slugg)
-	if err == sql.ErrNoRows {
-		fmt.Println("404")
-		return models.Thread{}, models.Error{Code: 404, Message: "Can't find thread forum by slug: "+thread.Slug}
 	}
 
 	errr := f.DB.QueryRow(`
@@ -92,14 +88,16 @@ func (f *forumRepo) CreateThread(slug string, thread models.Thread) (models.Thre
 	values ($1,$2,$3,(select slug from forums where slug = $4),$5,$6) 
 	returning id, forum`,
 		thread.Title, thread.Author, thread.Message, slug, thread.Slug, thread.Created).Scan(&thread.ID, &thread.Forum)
-fmt.Println(errr)
-	if errr != nil && errr != sql.ErrNoRows { // если такой форум уже еть
-		fmt.Println("409")
-		return models.Thread{}, models.Error{Code: 409}
-	}
-	if errr == sql.ErrNoRows {
+
+	dbErr, _ := errr.(pgx.PgError)
+	if dbErr.Code == pgerrcode.ForeignKeyViolation ||  dbErr.Code == pgerrcode.NotNullViolation {
 		fmt.Println("404")
 		return models.Thread{}, models.Error{Code: 404, Message: "Can't find thread forum by slug: "+thread.Slug}
+
+	}
+	if errr != nil  { // если такой форум уже еть
+		fmt.Println("409")
+		return models.Thread{}, models.Error{Code: 409}
 	}
 
 	fmt.Println(thread)

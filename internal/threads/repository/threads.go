@@ -9,10 +9,10 @@ import (
 )
 
 type threadsRepo struct {
-	DB *sql.DB
+	DB *pgx.ConnPool
 }
 
-func NewThreadsRepo(db *sql.DB) threads.ThreadsRepo {
+func NewThreadsRepo(db *pgx.ConnPool) threads.ThreadsRepo {
 	return &threadsRepo{
 		DB: db,
 	}
@@ -186,6 +186,7 @@ func (db *threadsRepo) GetThreadPostsBySlug(slug string, params models.ParsePara
 func (db *threadsRepo) VoteThreadBySlug(slug string, vote models.Vote) models.Error {
 	_, err := db.DB.Exec("INSERT INTO votes(user, thread, vote) values ($1,$2,$3)", vote.Nickname, slug, vote.Voice)
 
+	dbErr, _ := err.(pgx.PgError)
 	switch dbErr.Code {
 	case pgerrcode.NotNullViolation:
 		return models.Error{Code: 404}

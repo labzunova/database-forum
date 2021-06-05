@@ -1,15 +1,15 @@
 	package repository
 
-import (
-	"DBproject/internal/service"
-	"database/sql"
-)
+	import (
+		"DBproject/internal/service"
+		"github.com/jackc/pgx"
+	)
 
 type serviceRepo struct {
-	DB *sql.DB
+	DB *pgx.ConnPool
 }
 
-func NewServiceRepo(db *sql.DB) service.ServiceRepo {
+func NewServiceRepo(db *pgx.ConnPool) service.ServiceRepo {
 	return &serviceRepo{
 		DB: db,
 	}

@@ -3,15 +3,15 @@ package repository
 import (
 	"DBproject/internal/user"
 	"DBproject/models"
-	"database/sql"
 	"fmt"
+	"github.com/jackc/pgx"
 )
 
 type usersRepo struct {
-	DB *sql.DB
+	DB *pgx.ConnPool
 }
 
-func NewUsersRepo(db *sql.DB) user.UserRepo {
+func NewUsersRepo(db *pgx.ConnPool) user.UserRepo {
 	return &usersRepo{
 		DB: db,
 	}
@@ -39,7 +39,7 @@ func (db *usersRepo) GetUser(nickname string) (models.User, models.Error) {
 	user := models.User{}
 	err := db.DB.QueryRow("select nickname, fullname, about, email from users where nickname=$1", nickname).
 		Scan(&user.Nickname, &user.FullName, &user.About, &user.Email)
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		return models.User{}, models.Error{Code: 404}
 	}
 	if err != nil {
@@ -61,7 +61,7 @@ func (db *usersRepo) UpdateUser(profile models.User) (models.User, models.Error)
 		returning fullname, about, email`, profile.FullName, profile.About, profile.Email, profile.Nickname).
 		Scan(&profile.FullName, &profile.About, &profile.Email)
 	//dbError, ok := err.(pgx.PgError)
-	if err == sql.ErrNoRows {
+	if err == pgx.ErrNoRows {
 		return models.User{}, models.Error{Code: 404}
 	}
 	//if ok && dbError.Code == pgerrcode.UniqueViolation {

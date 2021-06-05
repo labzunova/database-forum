@@ -5,14 +5,15 @@ import (
 	"DBproject/models"
 	"database/sql"
 	"fmt"
+	"github.com/jackc/pgx"
 	"time"
 )
 
 type postsRepo struct {
-	DB *sql.DB
+	DB *pgx.ConnPool
 }
 
-func NewPostsRepo(db *sql.DB) posts.PostsRepo {
+func NewPostsRepo(db *pgx.ConnPool) posts.PostsRepo {
 	return &postsRepo{
 		DB: db,
 	}
