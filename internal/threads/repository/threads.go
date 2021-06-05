@@ -3,7 +3,6 @@ package repository
 import (
 	"DBproject/internal/threads"
 	"DBproject/models"
-	"database/sql"
 	"fmt"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx"
@@ -18,6 +17,74 @@ func NewThreadsRepo(db *pgx.ConnPool) threads.ThreadsRepo {
 		DB: db,
 	}
 }
+
+const treeDescSince = `
+	select id, parent, author, message, isEdited, forum, thread, created
+	from posts
+	where thread = $1 and path < (select path from posts where id = $2)
+	order by path desc
+	limit $3`
+const treeSince = `
+	select id, parent, author, message, isEdited, forum, thread, created
+	from posts
+	where thread = $1 and path > (select path from posts where id = $2)
+	order by path asc
+	limit $3`
+const treeDesc = `
+	select id, parent, author, message, isEdited, forum, thread, created
+	from posts
+	where thread = $1 
+	order by path desc
+	limit $2`
+const tree = `
+	select id, parent, author, message, isEdited, forum, thread, created
+	from posts
+	where thread = $1 
+	order by path asc
+	limit $2`
+
+const parentTreeDescSince = `
+	select id, parent, author, message, isEdited, forum, thread, created
+	from posts
+	where thread = $1 and path[1] in(
+		select distinct path[1] from posts
+		where parent is null and thread = $1 and
+		path[1]<(select path[1] from posts where id=$2)
+		order by path[1] desc 
+		limit $3
+	)
+	order by path[1] desc, path[2:]`
+const parentTreeSince = `select id, parent, author, message, isEdited, forum, thread, created
+	from posts
+	where thread = $1 and path[1] in(
+		select distinct path[1] from posts
+		where parent is null and thread = $1 and
+		path[1]>(select path[1] from posts where id=$2)
+		order by path[1]
+		limit $3
+	)
+	order by path`
+const parentTreeDesc = `	
+	select id, parent, author, message, isEdited, forum, thread, created
+	from posts
+	where thread = $1 and path[1] in(
+		select distinct path[1] from posts
+		where thread = $1
+		order by path[1] desc 
+		limit $2
+	)
+	order by path[1] desc, path[2:]`
+const parentTree = `
+	select id, parent, author, message, isEdited, forum, thread, created
+	from posts
+	where thread = $1 and path[1] in(
+		select distinct path[1] from posts
+		where thread = $1
+		order by path[1]
+		limit $2
+	)
+	order by path`
+
 
 func (db *threadsRepo) GetThread(slug string, id int) (models.Thread, models.Error) {
 	thread := models.Thread{
@@ -78,21 +145,23 @@ func (db *threadsRepo) GetThreadPostsById(id int, params models.ParseParamsThrea
 	var queryParameters []interface{}
 	queryParameters = append(queryParameters, id)
 
+	fmt.Println("since:", params.Since, "desc:", params.Desc, "limit:", params.Limit, "sort:", params.Sort)
+
 	switch params.Sort {
 	case "tree":
 		switch {
 		case params.Desc && params.Since != 0:
-			query = `
-				SELECT id, parent, author, message, isEdited, forum, thread, created
-				FROM posts
-				WHERE thread = $1 and id
-`
+			query = treeDescSince
+			queryParameters = append(queryParameters, params.Since, params.Limit)
 		case !params.Desc && params.Since != 0:
-
+			query = treeSince
+			queryParameters = append(queryParameters, params.Since, params.Limit)
 		case params.Desc && params.Since == 0:
-
+			query = treeDesc
+			queryParameters = append(queryParameters, params.Limit)
 		case !params.Desc && params.Since == 0:
-
+			query = tree
+			queryParameters = append(queryParameters, params.Limit)
 		default:
 			return nil, models.Error{Code: 400}
 		}
@@ -100,13 +169,17 @@ func (db *threadsRepo) GetThreadPostsById(id int, params models.ParseParamsThrea
 	case "parent_tree":
 		switch {
 		case params.Desc && params.Since != 0:
-
+			query = parentTreeDescSince
+			queryParameters = append(queryParameters, params.Since, params.Limit)
 		case !params.Desc && params.Since != 0:
-
+			query = parentTreeSince
+			queryParameters = append(queryParameters, params.Since, params.Limit)
 		case params.Desc && params.Since == 0:
-
+			query = parentTreeDesc
+			queryParameters = append(queryParameters, params.Limit)
 		case !params.Desc && params.Since == 0:
-
+			query = parentTree
+			queryParameters = append(queryParameters, params.Limit)
 		default:
 			return nil, models.Error{Code: 400}
 		}
@@ -117,8 +190,8 @@ func (db *threadsRepo) GetThreadPostsById(id int, params models.ParseParamsThrea
 			query = `
 				SELECT id, parent, author, message, isEdited, forum, thread, created
 				FROM posts
-				WHERE thread = $1 and id > $2
-				ORDER BY created DESC
+				WHERE thread = $1 and id < $2
+				ORDER BY id DESC
 				LIMIT $3
 			`
 			queryParameters = append(queryParameters, params.Since, params.Limit)
@@ -127,8 +200,8 @@ func (db *threadsRepo) GetThreadPostsById(id int, params models.ParseParamsThrea
 				SELECT id, parent, author, message, isEdited, forum, thread, created
 				FROM posts
 				WHERE thread = $1 and id > $2
-				ORDER BY created
-				LIMIT $2
+				ORDER BY id
+				LIMIT $3
 			`
 			queryParameters = append(queryParameters, params.Since, params.Limit)
 		case params.Desc && params.Since == 0:
@@ -136,7 +209,7 @@ func (db *threadsRepo) GetThreadPostsById(id int, params models.ParseParamsThrea
 				SELECT id, parent, author, message, isEdited, forum, thread, created
 				FROM posts
 				WHERE thread = $1
-				ORDER BY created DESC
+				ORDER BY id DESC
 				LIMIT $2
 			`
 			queryParameters = append(queryParameters, params.Limit)
@@ -145,7 +218,7 @@ func (db *threadsRepo) GetThreadPostsById(id int, params models.ParseParamsThrea
 				SELECT id, parent, author, message, isEdited, forum, thread, created
 				FROM posts
 				WHERE thread = $1
-				ORDER BY created
+				ORDER BY id
 				LIMIT $2
 			`
 			queryParameters = append(queryParameters, params.Limit)
@@ -154,21 +227,22 @@ func (db *threadsRepo) GetThreadPostsById(id int, params models.ParseParamsThrea
 		}
 	}
 
-	posts := make([]models.Post, 0)
-	rows, err := db.DB.Query(query, queryParameters)
-	if err == sql.ErrNoRows {
+	rows, err := db.DB.Query(query, queryParameters...)
+	fmt.Println("GET POSTS WITH SORT ERR ", err)
+	if err == pgx.ErrNoRows {
 		return nil, models.Error{Code: 404}
 	}
 	if err != nil {
 		return nil, models.Error{Code: 500}
 	}
 
+	posts := make([]models.Post, 0)
 	for rows.Next() {
 		post := models.Post{}
-
+		var parent *int
 		err = rows.Scan(
 			&post.ID,
-			&post.Parent,
+			&parent,
 			&post.Author,
 			&post.Message,
 			&post.IsEdited,
@@ -176,11 +250,18 @@ func (db *threadsRepo) GetThreadPostsById(id int, params models.ParseParamsThrea
 			&post.Thread,
 			&post.Created,
 		)
+		if parent != nil {
+			post.Parent = *parent
+		}
+		fmt.Println("POST: ", post)
 		if err != nil {
+			fmt.Println("error while scan", err)
 			return nil, models.Error{Code: 500}
 		}
-	}
 
+		posts = append(posts, post)
+	}
+fmt.Println("enddd")
 	return posts, models.Error{Code: 200}
 }
 
@@ -327,4 +408,10 @@ func (db *threadsRepo) UpdateVoteThreadById(id int, vote models.Vote) models.Err
 	}
 
 	return models.Error{Code: 200}
+}
+
+func (db *threadsRepo) GetThreadIDBySlug(slug string) (int, models.Error) {
+	var id int
+	_ = db.DB.QueryRow("select id from threads where slug=$1", slug).Scan(&id)
+	return id, models.Error{Code: 200}
 }

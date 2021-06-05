@@ -90,20 +90,35 @@ func (db *postsRepo) CreatePosts(thread models.Thread, posts []models.Post) ([]m
 	createdTime := time.Now()
 
 	query := `insert into posts (parent, author, message, forum, thread, created) values `
+	queryParams := make([]interface{}, 0)
 
 	last := len(posts) - 1
 	for i, post := range posts {
+		fmt.Println("post", post)
+		//parentPost := new(int)
+		//if post.Parent != 0 {
+		//	*parentPost = post.Parent
+		//}
+		//var parentPost *int
+		//if post.Parent != 0 {
+		//	parentPost = new(int)
+		//	*parentPost = post.Parent
+		//}
+
+	//	fmt.Println(parentPost)
 		if i == last {
-			query += fmt.Sprintf(`(%d,'%s','%s','%s', %d, $1) `, post.Parent, post.Author, post.Message, thread.Forum, thread.ID)
+			query += fmt.Sprintf(`(nullif($%d,0),$%d,$%d,$%d,$%d,$%d) `, i*6+1,i*6+2,i*6+3,i*6+4,i*6+5,i*6+6)
 		} else {
-			query += fmt.Sprintf(`(%d,'%s','%s','%s', %d, $1), `, post.Parent, post.Author, post.Message, thread.Forum, thread.ID)
+			//query += fmt.Sprintf(`(%d,'%s','%s','%s', %d, $1), `, parentPost, post.Author, post.Message, thread.Forum, thread.ID)
+			query += fmt.Sprintf(`(nullif($%d,0),$%d,$%d,$%d,$%d,$%d), `, i*6+1,i*6+2,i*6+3,i*6+4,i*6+5,i*6+6)
 		}
+		queryParams = append(queryParams, post.Parent, post.Author, post.Message, thread.Forum, thread.ID, createdTime)
 	}
 
 	query += " returning id, created"
 
-	fmt.Println(query)
-	rows, err := db.DB.Query(query, createdTime)
+	fmt.Println("\n", query, "\n")
+	rows, err := db.DB.Query(query, queryParams...)
 	fmt.Println("ADDING POST ERROR ", err)
 	if err != nil {
 		return nil, models.Error{Code: 500}

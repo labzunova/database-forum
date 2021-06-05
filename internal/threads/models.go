@@ -30,4 +30,6 @@ type ThreadsRepo interface {
 	VoteThreadById(id int, vote models.Vote) models.Error
 	UpdateVoteThreadBySlug(slug string, vote models.Vote) models.Error
 	UpdateVoteThreadById(id int, vote models.Vote) models.Error
+
+	GetThreadIDBySlug(slug string) (int, models.Error)
 }

@@ -35,7 +35,8 @@ func (t threadsUsecase) GetThreadPosts(slugOrId string, params models.ParseParam
 	if id != 0 {
 		return t.threadsRepository.GetThreadPostsById(id, params)
 	}
-	return t.threadsRepository.GetThreadPostsBySlug(slugOrId, params)
+	id, _ = t.threadsRepository.GetThreadIDBySlug(slugOrId)
+	return t.threadsRepository.GetThreadPostsById(id, params)
 }
 
 func (t threadsUsecase) VoteThread(slugOrId string, vote models.Vote) (models.Thread, models.Error) {
