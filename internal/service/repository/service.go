@@ -16,11 +16,8 @@ func NewServiceRepo(db *pgx.ConnPool) service.ServiceRepo {
 }
 
 func (s serviceRepo) Clear() error {
-	_, err := s.DB.Exec("truncate forums, users, threads, posts, forum_users") // todo anything else?...
-	if err != nil {
-		return err
-	}
-	return nil
+	_, err := s.DB.Exec("truncate users, forums, threads, posts, forum_users, votes cascade") // todo anything else?...
+	return err
 }
 
 func (s serviceRepo) Status() service.DBinfo {

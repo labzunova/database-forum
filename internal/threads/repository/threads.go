@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx"
+	"strconv"
 )
 
 type threadsRepo struct {
@@ -140,7 +141,7 @@ func (db *threadsRepo) UpdateThreadById(id int, thread models.Thread) (models.Th
 	return thread, models.Error{Code: 200}
 }
 
-func (db *threadsRepo) GetThreadPostsById(id int, params models.ParseParamsThread) ([]models.Post, models.Error) {
+func (db *threadsRepo) GetThreadPostsById(id int, slugOrId string, params models.ParseParamsThread) ([]models.Post, models.Error) {
 	var query string
 	var queryParameters []interface{}
 	queryParameters = append(queryParameters, id)
@@ -163,7 +164,7 @@ func (db *threadsRepo) GetThreadPostsById(id int, params models.ParseParamsThrea
 			query = tree
 			queryParameters = append(queryParameters, params.Limit)
 		default:
-			return nil, models.Error{Code: 400}
+			return nil, models.Error{Code: 404}
 		}
 
 	case "parent_tree":
@@ -181,7 +182,7 @@ func (db *threadsRepo) GetThreadPostsById(id int, params models.ParseParamsThrea
 			query = parentTree
 			queryParameters = append(queryParameters, params.Limit)
 		default:
-			return nil, models.Error{Code: 400}
+			return nil, models.Error{Code: 404}
 		}
 
 	default: // flat
@@ -223,14 +224,18 @@ func (db *threadsRepo) GetThreadPostsById(id int, params models.ParseParamsThrea
 			`
 			queryParameters = append(queryParameters, params.Limit)
 		default:
-			return nil, models.Error{Code: 400}
+			return nil, models.Error{Code: 404}
 		}
 	}
 
 	rows, err := db.DB.Query(query, queryParameters...)
 	fmt.Println("GET POSTS WITH SORT ERR ", err)
 	if err == pgx.ErrNoRows {
-		return nil, models.Error{Code: 404}
+		_, ok := strconv.Atoi(slugOrId)
+		if ok == nil {
+			return nil, models.Error{Code: 404, Message: fmt.Sprintf("Can't find forum by id: %d", id)}
+		}
+		return nil, models.Error{Code: 404, Message: "Can't find forum by slug: " + slugOrId}
 	}
 	if err != nil {
 		return nil, models.Error{Code: 500}
@@ -276,8 +281,13 @@ func (db *threadsRepo) VoteThreadBySlug(slug string, vote models.Vote) models.Er
 	dbErr, ok := err.(pgx.PgError)
 	if ok {
 		switch dbErr.Code {
-		case pgerrcode.NotNullViolation:
-			return models.Error{Code: 404}
+		case pgerrcode.ForeignKeyViolation:
+			var id int
+			err = db.DB.QueryRow("select user from users where nickname = $1", vote.Nickname).Scan(&id)
+			if err != nil {
+				return models.Error{Code: 404, Message: "Can't find user by nickname: " + vote.Nickname}
+			}
+			return models.Error{Code: 404, Message: "Can't find thread by slug: " + slug}
 		case pgerrcode.UniqueViolation:
 			updateErr := db.UpdateVoteThreadBySlug(slug, vote)
 			if updateErr.Code != 200 {

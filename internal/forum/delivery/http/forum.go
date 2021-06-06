@@ -90,8 +90,9 @@ func (h Handler) ForumGetUsers(c echo.Context) error {
 	getUsers.Desc, _ = strconv.ParseBool(c.QueryParam("desc"))
 
 	users, err := h.ForumUcase.GetUsers(slug, *getUsers)
-	if err.Code == 400 {
-		return c.JSON(http.StatusNotFound, "Форум отсутствует в системе")
+	if err.Code == 404 {
+		err.Message = "Can't find forum by slug: " + slug
+		return c.JSON(http.StatusNotFound, err)
 	}
 
 	return c.JSON(http.StatusOK, users)

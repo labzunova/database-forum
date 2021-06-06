@@ -19,13 +19,13 @@ func NewServiceHandler(serviceUcase service.ServiceUsecase) service.ServiceHandl
 
 // Clear Безвозвратное удаление всей пользовательской информации из базы данных.
 func (h *Handler) Clear(c echo.Context) error {
-	return nil // todo
+	err := h.ServiceUcase.Clear()
+	return c.JSON(http.StatusOK, err)
 }
 
 // Status Получение инфомарции о базе данных.
 func (h *Handler) Status(c echo.Context) error {
 	status := h.ServiceUcase.Status()
 	return c.JSON(http.StatusOK, status)
-
 }
 

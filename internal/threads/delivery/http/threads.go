@@ -85,7 +85,7 @@ func (h *Handler) ThreadVote(c echo.Context) error {
 
 	thread, err :=  h.ThreadsUcase.VoteThread(slug, *newVote)
 	if err.Code == 404 {
-		return c.JSON(http.StatusNotFound, "Ветка отсутствует в форуме")
+		return c.JSON(http.StatusNotFound, err)
 	}
 	if err.Code != 200 {
 		return c.JSON(http.StatusInternalServerError, "Error")

@@ -4,6 +4,7 @@ import (
 	"DBproject/internal/posts"
 	"DBproject/models"
 	"encoding/json"
+	"fmt"
 	"github.com/labstack/echo/v4"
 	"net/http"
 	"strconv"
@@ -26,26 +27,36 @@ type relatedForPost struct {
 }
 
 // PostGetOne Получение информации о ветке обсуждения по его имени.
-	func (h *Handler) PostGetOne(c echo.Context) error {
+func (h *Handler) PostGetOne(c echo.Context) error {
 	id, _ := strconv.ParseInt(c.Param("id"), 0, 64)
 	related := c.QueryParam("related")
 	related = strings.ReplaceAll(related, "[", "")
 	related = strings.ReplaceAll(related, "]", "")
 	relatedSlice := strings.Split(related, ",")
 
+	fullPost := posts.FullPost{}
 
 	post, err := h.PostsUcase.GetPost(int(id))
+	fmt.Println("get post error(handler)", err)
 	if err.Code == 404 {
-		return c.JSON(http.StatusNotFound, "Ветка отсутствует в форуме")
+		err.Message = fmt.Sprintf("Can't find post with id: %d", id)
+		return c.JSON(http.StatusNotFound, err)
 	}
 
-	fullPost, errr := h.PostsUcase.GetPostInfo(int(id), relatedSlice)
-	if errr.Code != 200 {
-		return c.JSON(http.StatusInternalServerError, err.Code)
+	fullPost.Post = &post
+	fmt.Println("post", fullPost)
+
+	if len(related) != 0 {
+		fmt.Println("related exist")
+		fullPost, err = h.PostsUcase.GetPostInfo(int(id), relatedSlice)
+		fmt.Println("get post info error(handler)", err)
+		if err.Code != 200 {
+			return c.JSON(http.StatusInternalServerError, err.Code)
+		}
 	}
 
-	fullPost.Post = post
-
+	fmt.Println("done")
+	fmt.Println("post", fullPost)
 	return c.JSON(http.StatusOK, fullPost)
 }
 
@@ -53,14 +64,14 @@ type relatedForPost struct {
 // Если сообщение поменяло текст, то оно должно получить отметку `isEdited`.
 func (h *Handler) PostUpdate(c echo.Context) error {
 	id, _ := strconv.ParseInt(c.Param("id"), 0, 64)
-	var newMessage posts.UpdateMessage
+	newMessage := new(posts.UpdateMessage)
 	if err := c.Bind(newMessage); err != nil {
 		return err
 	}
 
 	post, err := h.PostsUcase.UpdatePost(int(id), newMessage.Message)
 	if err.Code == 404 {
-		return c.JSON(http.StatusNotFound, "Сообщение отсутствует в форуме")
+		return c.JSON(http.StatusNotFound, err)
 	}
 
 	return c.JSON(http.StatusOK, post)
@@ -83,9 +94,10 @@ func (h *Handler) PostsCreate(c echo.Context) error {
 	posts, errr := h.PostsUcase.CreatePosts(slug, newPosts)
 	switch errr.Code {
 	case 404:
-		return c.JSON(http.StatusNotFound, "Ветка отсутствует в базе")
+		return c.JSON(http.StatusNotFound, errr)
 	case 409:
-		return c.JSON(http.StatusConflict, "Хотя бы один пост отсутствует в ветке")
+		errr.Message = "Parent post was created in another thread"
+		return c.JSON(http.StatusConflict, errr)
 	}
 
 	return c.JSON(http.StatusCreated, posts)

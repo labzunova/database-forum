@@ -3,6 +3,7 @@ package usecase
 import (
 	"DBproject/internal/forum"
 	"DBproject/models"
+	"fmt"
 	"github.com/google/uuid"
 )
 
@@ -42,7 +43,18 @@ func (f forumUsecase) CreateThread(slug string, thread models.Thread) (models.Th
 }
 
 func (f forumUsecase) GetUsers(slug string, params models.ParseParams) ([]models.User, models.Error) {
-	return f.forumRepository.GetUsers(slug, params)
+	users, err :=f.forumRepository.GetUsers(slug, params)
+	fmt.Println("users", users)
+	if len(users) == 0 {
+		fmt.Println("no users was found")
+		_, err = f.forumRepository.GetForum(slug)
+		fmt.Println(err)
+		if err.Code == 404 {
+			return users, err
+		}
+	}
+
+	return users, err
 }
 
 func (f forumUsecase) GetThreads(slug string, params models.ParseParams) ([]models.Thread, models.Error) {

@@ -3,6 +3,7 @@ package usecase
 import (
 	"DBproject/internal/posts"
 	"DBproject/models"
+	"fmt"
 	"strconv"
 )
 
@@ -24,28 +25,42 @@ func (p postsUsecase) GetPostInfo(id int, related []string) (post posts.FullPost
 	error.Code = 500
 
 	for _, info := range related {
+		fmt.Println("related")
 		switch info {
 		case "user":
 			user, err := p.postsRepository.GetPostAuthor(id)
+			fmt.Println("post author", user)
 			if err.Code != 200 {
 				return post, error
 			}
-			post.User = user
+			post.User = &user
 		case "forum":
 			forum, err := p.postsRepository.GetPostForum(id)
+			fmt.Println("post forum", forum)
 			if err.Code != 200 {
 				return post, error
 			}
-			post.Forum = forum
+			post.Forum = &forum
 		case "thread":
 			thread, err := p.postsRepository.GetPostThread(id)
+			fmt.Println("post thread", thread)
 			if err.Code != 200 {
 				return post, error
 			}
-			post.Thread = thread
+			post.Thread = &thread
 		default:
 			return post, error
 		}
+	}
+
+	if post.Post.ID == 0 {
+		post.Post = nil
+	}
+	if post.Thread.Slug == "" {
+		post.Thread = nil
+	}
+	if post.Forum.Slug == "" {
+		post.Forum = nil
 	}
 
 	error.Code = 200
@@ -63,11 +78,13 @@ func (p postsUsecase) CreatePosts(slug string, posts []models.Post) ([]models.Po
 	if errID == nil {
 		thread, err = p.postsRepository.GetThreadAndForumById(id)
 		if err.Code == 404 {
+			err.Message = "Can't find post thread by id: " + slug
 			return nil, err
 		}
 	} else {
 		thread, err = p.postsRepository.GetThreadAndForumBySlug(slug)
 		if err.Code == 404 {
+			err.Message = "Can't find post thread by id: " + slug
 			return nil, err
 		}
 	}

@@ -32,11 +32,18 @@ func (t threadsUsecase) UpdateThread(slugOrId string, thread models.Thread) (mod
 
 func (t threadsUsecase) GetThreadPosts(slugOrId string, params models.ParseParamsThread) ([]models.Post, models.Error) {
 	id := t.SlugOrID(slugOrId)
+	var err models.Error
 	if id != 0 {
-		return t.threadsRepository.GetThreadPostsById(id, params)
+		_, err = t.threadsRepository.GetThreadPostsById(id, slugOrId, params)
+		if err.Code != 200 {
+			err.Message = fmt.Sprintf("Can't find thread by id: %d", id)
+		}
 	}
 	id, _ = t.threadsRepository.GetThreadIDBySlug(slugOrId)
-	return t.threadsRepository.GetThreadPostsById(id, params)
+	if err.Code != 200 {
+		err.Message = "Can't find thread by slug: " + slugOrId
+	}
+	return t.threadsRepository.GetThreadPostsById(id, slugOrId, params)
 }
 
 func (t threadsUsecase) VoteThread(slugOrId string, vote models.Vote) (models.Thread, models.Error) {

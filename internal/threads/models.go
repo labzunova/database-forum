@@ -25,7 +25,7 @@ type ThreadsRepo interface {
 	UpdateThreadBySlug(slug string, thread models.Thread) (models.Thread, models.Error)
 	UpdateThreadById(id int, thread models.Thread) (models.Thread, models.Error)
 	GetThreadPostsBySlug(slug string, params models.ParseParamsThread) ([]models.Post, models.Error)
-	GetThreadPostsById(id int, params models.ParseParamsThread) ([]models.Post, models.Error)
+	GetThreadPostsById(id int, slug string, params models.ParseParamsThread) ([]models.Post, models.Error)
 	VoteThreadBySlug(slug string, vote models.Vote) models.Error
 	VoteThreadById(id int, vote models.Vote) models.Error
 	UpdateVoteThreadBySlug(slug string, vote models.Vote) models.Error

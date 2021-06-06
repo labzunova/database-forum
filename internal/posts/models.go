@@ -10,10 +10,10 @@ type UpdateMessage struct {
 }
 
 type FullPost struct {
-	Post models.Post
-	User models.User
-	Forum models.Forum
-	Thread models.Thread
+	Post *models.Post `json:"post"`
+	User *models.User `json:"author"`
+	Forum *models.Forum `json:"forum"`
+	Thread *models.Thread `json:"thread"`
 }
 
 type PostsHandler interface {
@@ -41,4 +41,5 @@ type PostsRepo interface {
 	CreatePosts(thread models.Thread, posts []models.Post) ([]models.Post, models.Error)
 	GetThreadAndForumById(id int) (models.Thread, models.Error)
 	GetThreadAndForumBySlug(slug string) (models.Thread, models.Error)
+	CheckValidParent(id, parent int) bool
 }
