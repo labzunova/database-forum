@@ -54,7 +54,7 @@ func (t threadsUsecase) GetThreadPosts(slugOrId string, params models.ParseParam
 
 func (t threadsUsecase) VoteThread(slugOrId string, vote models.Vote) (models.Thread, models.Error) {
 	id := t.SlugOrID(slugOrId)
-	fmt.Println("slug or id ",slugOrId, id)
+	fmt.Println("slug or id ", slugOrId, id)
 	if id != 0 {
 		fmt.Println("vote by id")
 		err := t.threadsRepository.VoteThreadById(id, vote)

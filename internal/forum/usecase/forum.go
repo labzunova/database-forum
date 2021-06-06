@@ -43,7 +43,7 @@ func (f forumUsecase) CreateThread(slug string, thread models.Thread) (models.Th
 }
 
 func (f forumUsecase) GetUsers(slug string, params models.ParseParams) ([]models.User, models.Error) {
-	users, err :=f.forumRepository.GetUsers(slug, params)
+	users, err := f.forumRepository.GetUsers(slug, params)
 	fmt.Println("users", users)
 	if len(users) == 0 {
 		fmt.Println("no users was found")
@@ -68,5 +68,3 @@ func (f forumUsecase) GetThreads(slug string, params models.ParseParams) ([]mode
 
 	return threads, err
 }
-
-

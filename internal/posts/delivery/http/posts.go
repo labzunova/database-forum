@@ -39,6 +39,7 @@ func (h *Handler) PostGetOne(c echo.Context) error {
 	post, err := h.PostsUcase.GetPost(int(id))
 	fmt.Println("get post error(handler)", err)
 	if err.Code == 404 {
+		//return c.JSON(http.StatusOK, nil) // TODO FOR PERF TESTS ????
 		err.Message = fmt.Sprintf("Can't find post with id: %d", id)
 		return c.JSON(http.StatusNotFound, err)
 	}

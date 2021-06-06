@@ -10,9 +10,9 @@ type UpdateMessage struct {
 }
 
 type FullPost struct {
-	Post *models.Post `json:"post"`
-	User *models.User `json:"author"`
-	Forum *models.Forum `json:"forum"`
+	Post   *models.Post   `json:"post"`
+	User   *models.User   `json:"author"`
+	Forum  *models.Forum  `json:"forum"`
 	Thread *models.Thread `json:"thread"`
 }
 
@@ -29,7 +29,6 @@ type PostsUsecase interface {
 	UpdatePost(id int, message string) (models.Post, models.Error)
 	CreatePosts(slug string, posts []models.Post) ([]models.Post, models.Error)
 }
-
 
 type PostsRepo interface {
 	GetPost(id int) (models.Post, models.Error)

@@ -38,7 +38,7 @@ func (h *Handler) UserCreate(c echo.Context) error {
 		}
 		return c.JSON(http.StatusConflict, users)
 	}
-fmt.Println(newUser, "createsd")
+	fmt.Println(newUser, "createsd")
 	return c.JSON(http.StatusCreated, newUser)
 }
 

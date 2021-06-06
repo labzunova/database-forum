@@ -28,4 +28,3 @@ func (h *Handler) Status(c echo.Context) error {
 	status := h.ServiceUcase.Status()
 	return c.JSON(http.StatusOK, status)
 }
-

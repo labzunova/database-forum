@@ -1,9 +1,9 @@
-	package repository
+package repository
 
-	import (
-		"DBproject/internal/service"
-		"github.com/jackc/pgx"
-	)
+import (
+	"DBproject/internal/service"
+	"github.com/jackc/pgx"
+)
 
 type serviceRepo struct {
 	DB *pgx.ConnPool

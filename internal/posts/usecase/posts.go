@@ -59,7 +59,7 @@ func (p postsUsecase) GetPostInfo(id int, related []string) (post posts.FullPost
 	return post, error
 }
 
-func (p postsUsecase) UpdatePost(id int,  message string) (models.Post, models.Error) {
+func (p postsUsecase) UpdatePost(id int, message string) (models.Post, models.Error) {
 	return p.postsRepository.UpdatePost(id, message)
 }
 

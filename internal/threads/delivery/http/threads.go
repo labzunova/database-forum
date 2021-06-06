@@ -24,12 +24,11 @@ func NewThreadsHandler(threadsUcase threads.ThreadsUsecase) threads.ThreadsHandl
 func (h *Handler) ThreadGetOne(c echo.Context) error {
 	slug := c.Param("slug_or_id")
 
-	thread, err :=  h.ThreadsUcase.GetThread(slug)
+	thread, err := h.ThreadsUcase.GetThread(slug)
 	if err.Code == 404 {
+		//return c.JSON(http.StatusOK, nil) // TODO FOR PERF TESTS ????
 		return c.JSON(http.StatusNotFound, err)
 	}
-
-	//thread.Created = thread.Created.Add(-time.Hour * 3) // TODO ВРЕМЕННО ДЛЯ КОМПА
 
 	return c.JSON(http.StatusOK, thread)
 }
@@ -42,12 +41,10 @@ func (h *Handler) ThreadUpdate(c echo.Context) error {
 		return err
 	}
 
-	thread, err :=  h.ThreadsUcase.UpdateThread(slugOrId, *newThread)
+	thread, err := h.ThreadsUcase.UpdateThread(slugOrId, *newThread)
 	if err.Code == 404 {
 		return c.JSON(http.StatusNotFound, err)
 	}
-
-	//thread.Created = thread.Created.Add(-time.Hour * 3) // TODO ВРЕМЕННО ДЛЯ КОМПА
 
 	return c.JSON(http.StatusOK, thread)
 }
@@ -55,6 +52,7 @@ func (h *Handler) ThreadUpdate(c echo.Context) error {
 // ThreadGetPosts Получение списка сообщений в данной ветке форуме.
 // Сообщения выводятся отсортированные по дате создания.
 func (h *Handler) ThreadGetPosts(c echo.Context) error {
+	fmt.Println("GET THREADS")
 	slugOrId := c.Param("slug_or_id")
 	getPosts := new(models.ParseParamsThread)
 
@@ -65,6 +63,7 @@ func (h *Handler) ThreadGetPosts(c echo.Context) error {
 
 	posts, err := h.ThreadsUcase.GetThreadPosts(slugOrId, *getPosts)
 	if err.Code == 404 {
+		//return c.JSON(http.StatusOK, nil) // TODO FOR PERF TESTS ????
 		err.Message = "Can't find forum by slug: " + slugOrId
 		return c.JSON(http.StatusNotFound, err)
 	}
@@ -82,7 +81,7 @@ func (h *Handler) ThreadVote(c echo.Context) error {
 	}
 	slug := c.Param("slug_or_id")
 
-	thread, err :=  h.ThreadsUcase.VoteThread(slug, *newVote)
+	thread, err := h.ThreadsUcase.VoteThread(slug, *newVote)
 	if err.Code == 404 {
 		return c.JSON(http.StatusNotFound, err)
 	}

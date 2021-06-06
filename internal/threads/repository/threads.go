@@ -86,11 +86,10 @@ const parentTree = `
 	)
 	order by path`
 
-
 func (db *threadsRepo) GetThread(slug string, id int) (models.Thread, models.Error) {
 	thread := models.Thread{
 		Slug: slug,
-		ID: id,
+		ID:   id,
 	}
 	fmt.Println(slug)
 	if id != 0 {
@@ -106,7 +105,7 @@ func (db *threadsRepo) GetThread(slug string, id int) (models.Thread, models.Err
 			Scan(&thread.ID, &thread.Slug, &thread.Title, &thread.Author, &thread.Forum, &thread.Message, &thread.Votes, &thread.Created)
 		fmt.Println(thread, err)
 		if err != nil || thread.Title == "" {
-			return thread, models.Error{Code: 404, Message: err.Error()}
+			return thread, models.Error{Code: 404, Message: "error"}
 		}
 	}
 
@@ -268,7 +267,7 @@ func (db *threadsRepo) GetThreadPostsById(id int, slugOrId string, params models
 	}
 	fmt.Println(posts)
 	fmt.Println(id)
-fmt.Println("enddd")
+	fmt.Println("enddd")
 	return posts, models.Error{Code: 200}
 }
 
@@ -321,8 +320,8 @@ func (db *threadsRepo) UpdateVoteThreadBySlug(slug string, vote models.Vote) mod
 	if err != nil {
 		return models.Error{Code: 500}
 	}
-	fmt.Println("old voice ",voice)
-	fmt.Println("new voice ",vote.Voice)
+	fmt.Println("old voice ", voice)
+	fmt.Println("new voice ", vote.Voice)
 
 	if vote.Voice == voice {
 		fmt.Println("RETURN")
@@ -334,7 +333,7 @@ func (db *threadsRepo) UpdateVoteThreadBySlug(slug string, vote models.Vote) mod
 		return models.Error{Code: 500}
 	}
 
-	if vote.Voice == -1 && voice == 1{
+	if vote.Voice == -1 && voice == 1 {
 		vote.Voice = -2
 	}
 
@@ -348,7 +347,6 @@ func (db *threadsRepo) UpdateVoteThreadBySlug(slug string, vote models.Vote) mod
 	if err != nil {
 		return models.Error{Code: 500}
 	}
-
 
 	return models.Error{Code: 200}
 }
@@ -392,8 +390,8 @@ func (db *threadsRepo) UpdateVoteThreadById(id int, vote models.Vote) models.Err
 	fmt.Println("id: ", id, "user: ", vote.Nickname)
 	err := db.DB.QueryRow(`select vote from votes 
 	where thread=(select slug from threads where id=$1) and "user"=$2`, id, vote.Nickname).Scan(&voice)
-	fmt.Println("old voice ",voice)
-	fmt.Println("new voice ",vote.Voice)
+	fmt.Println("old voice ", voice)
+	fmt.Println("new voice ", vote.Voice)
 	if err != nil {
 		return models.Error{Code: 500}
 	}
@@ -404,7 +402,7 @@ func (db *threadsRepo) UpdateVoteThreadById(id int, vote models.Vote) models.Err
 
 	_, err = db.DB.Exec(`UPDATE votes SET vote=$1 
 		where thread=(select slug from threads where id=$2) and "user"=$3`, vote.Voice, id, vote.Nickname)
-	fmt.Println(3453534,err)
+	fmt.Println(3453534, err)
 	if err != nil {
 		return models.Error{Code: 500}
 	}
@@ -419,7 +417,7 @@ func (db *threadsRepo) UpdateVoteThreadById(id int, vote models.Vote) models.Err
 
 	fmt.Println("UPDATING")
 	_, err = db.DB.Exec("update threads set votes=votes+$1 where id=$2", vote.Voice, id)
-	fmt.Println(3453534,err)
+	fmt.Println(3453534, err)
 	if err != nil {
 		return models.Error{Code: 500}
 	}

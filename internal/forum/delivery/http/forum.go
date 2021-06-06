@@ -45,13 +45,15 @@ func (h Handler) ForumCreate(c echo.Context) error {
 func (h Handler) ForumGetOne(c echo.Context) error {
 	slug := c.Param("slug")
 
-	forum, err := h.ForumUcase.GetForum(slug)
+	forumResponse, err := h.ForumUcase.GetForum(slug)
 	if err.Code != 200 {
-		err.Message = "Can't find forum with slug: " + slug
+		//return c.JSON(http.StatusOK, nil) // TODO FOR PERF TESTS ????
+		//err.Message = "Can't find forum with slug: " + slug
+		err.Message = "Can't find forum"
 		return c.JSON(http.StatusNotFound, err)
 	}
 
-	return c.JSON(http.StatusOK, forum)
+	return c.JSON(http.StatusOK, forumResponse)
 }
 
 // ThreadCreate Добавление новой ветки обсуждения на форум
@@ -68,9 +70,6 @@ func (h Handler) ThreadCreate(c echo.Context) error {
 	case 404:
 		return c.JSON(http.StatusNotFound, err)
 	case 409:
-		fmt.Println(thread.Created)
-		//thread.Created = thread.Created.Add(-time.Hour * 3) // TODO ВРЕМЕННО ДЛЯ КОМПА
-		fmt.Println(thread.Created)
 		return c.JSON(http.StatusConflict, thread)
 	}
 
@@ -90,6 +89,7 @@ func (h Handler) ForumGetUsers(c echo.Context) error {
 
 	users, err := h.ForumUcase.GetUsers(slug, *getUsers)
 	if err.Code == 404 {
+		//return c.JSON(http.StatusOK, nil) // TODO FOR PERF TESTS ????
 		err.Message = "Can't find forum by slug: " + slug
 		return c.JSON(http.StatusNotFound, err)
 	}
@@ -103,17 +103,17 @@ func (h Handler) ForumGetThreads(c echo.Context) error {
 	slug := c.Param("slug")
 	getThreads := new(models.ParseParams)
 
-	getThreads.Limit, _ = strconv.Atoi(c.QueryParam("limit")) // todo if zero?
+	getThreads.Limit, _ = strconv.Atoi(c.QueryParam("limit"))
 	getThreads.Since = c.QueryParam("since")
 	getThreads.Desc, _ = strconv.ParseBool(c.QueryParam("desc"))
 	fmt.Println(getThreads)
 
 	threads, err := h.ForumUcase.GetThreads(slug, *getThreads)
 	if err.Code != 200 {
+		//return c.JSON(http.StatusOK, nil) // TODO FOR PERF TESTS ????
 		err.Message = "Can't find forum by slug: " + slug
 		return c.JSON(http.StatusNotFound, err)
 	}
 
 	return c.JSON(http.StatusOK, threads)
 }
-

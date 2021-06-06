@@ -23,5 +23,4 @@ type UserRepo interface {
 	GetUser(nickname string) (models.User, models.Error)
 	UpdateUser(profile models.User) (models.User, models.Error)
 	GetExistingUsers(nickname, email string) ([]models.User, models.Error)
-
 }

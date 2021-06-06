@@ -3,7 +3,7 @@ package models
 import "time"
 
 type Error struct {
-	Code int `json:"code"`
+	Code    int    `json:"code"`
 	Message string `json:"message"`
 }
 
@@ -24,6 +24,7 @@ type Status struct {
 //      - fullname
 //      - email
 type User struct {
+	ID       int    `json:"id"`
 	About    string `json:"about"`    // Описание пользователя
 	Email    string `json:"email"`    // Почтовый адрес пользователя (уникальное поле)
 	FullName string `json:"fullname"` // Полное имя пользователя
@@ -73,7 +74,7 @@ type Post struct { //  Сообщение внутри ветки обсужде
 	Message  string    `json:"message"`  // Собственно сообщение форума.
 	Parent   int       `json:"parent"`   // Идентификатор родительского сообщения (0 - корневое сообщение обсуждения).
 	IsEdited bool      `json:"isEdited"` // Истина, если данное сообщение было изменено.
-	Thread   int    `json:"thread"`   // Идентификатор форума (slug) данного сообещния.
+	Thread   int       `json:"thread"`   // Идентификатор форума (slug) данного сообещния.
 }
 
 // PostUpdate Сообщение для обновления сообщения внутри ветки на форуме. Пустые параметры остаются без изменений.

@@ -11,13 +11,13 @@ import (
 
 type postsRepo struct {
 	DB *pgx.ConnPool
-//	DbCreate *pgxpool.Pool
+	//	DbCreate *pgxpool.Pool
 }
 
 func NewPostsRepo(db *pgx.ConnPool) posts.PostsRepo {
 	return &postsRepo{
 		DB: db,
-	//	DbCreate: DbCreate,
+		//	DbCreate: DbCreate,
 	}
 }
 
@@ -46,7 +46,7 @@ func (db *postsRepo) GetPostAuthor(pid int) (models.User, models.Error) {
 	inner join posts p on users.nickname = p.author
 	where p.id = $1`, pid).Scan(&author.Nickname, &author.FullName, &author.About, &author.Email)
 	fmt.Println("get post author error", err)
-	if err!= nil {
+	if err != nil {
 		return author, models.Error{Code: 500}
 	}
 
@@ -87,11 +87,11 @@ func (db *postsRepo) UpdatePost(id int, message string) (models.Post, models.Err
 	}
 	var parent *int
 	post.IsEdited = true
-	err := db.DB.QueryRow("update posts set message=coalesce(nullif($1, ''), message), " +
-		"isedited = case when message=$1 or $1='' then isEdited else true end " +
-		"where id = $2 " +
+	err := db.DB.QueryRow("update posts set message=coalesce(nullif($1, ''), message), "+
+		"isedited = case when message=$1 or $1='' then isEdited else true end "+
+		"where id = $2 "+
 		"returning parent, author, forum, thread, created, message, isEdited", message, id).Scan(
-			&parent, &post.Author, &post.Forum, &post.Thread, &post.Created, &post.Message, &post.IsEdited)
+		&parent, &post.Author, &post.Forum, &post.Thread, &post.Created, &post.Message, &post.IsEdited)
 	fmt.Println("update post error", err)
 	if parent != nil {
 		post.Parent = *parent
@@ -108,7 +108,7 @@ func (db *postsRepo) UpdatePost(id int, message string) (models.Post, models.Err
 }
 
 func (db *postsRepo) CreatePosts(thread models.Thread, posts []models.Post) ([]models.Post, models.Error) {
-	if len(posts) != 0 && posts[0].Parent!= 0 {
+	if len(posts) != 0 && posts[0].Parent != 0 {
 		var parentCheck int
 		err := db.DB.QueryRow("select thread from posts where id = $1", posts[0].Parent).Scan(&parentCheck)
 		if err != nil {
@@ -120,7 +120,6 @@ func (db *postsRepo) CreatePosts(thread models.Thread, posts []models.Post) ([]m
 
 	query := `insert into posts (parent, author, message, forum, thread, created) values `
 	queryParams := make([]interface{}, 0)
-
 
 	last := len(posts) - 1
 	for i, post := range posts {
@@ -137,10 +136,10 @@ func (db *postsRepo) CreatePosts(thread models.Thread, posts []models.Post) ([]m
 		}
 
 		if i == last {
-			query += fmt.Sprintf(`(nullif($%d,0),$%d,$%d,$%d,$%d,$%d) `, i*6+1,i*6+2,i*6+3,i*6+4,i*6+5,i*6+6)
+			query += fmt.Sprintf(`(nullif($%d,0),$%d,$%d,$%d,$%d,$%d) `, i*6+1, i*6+2, i*6+3, i*6+4, i*6+5, i*6+6)
 		} else {
 			//query += fmt.Sprintf(`(%d,'%s','%s','%s', %d, $1), `, parentPost, post.Author, post.Message, thread.Forum, thread.ID)
-			query += fmt.Sprintf(`(nullif($%d,0),$%d,$%d,$%d,$%d,$%d), `, i*6+1,i*6+2,i*6+3,i*6+4,i*6+5,i*6+6)
+			query += fmt.Sprintf(`(nullif($%d,0),$%d,$%d,$%d,$%d,$%d), `, i*6+1, i*6+2, i*6+3, i*6+4, i*6+5, i*6+6)
 		}
 		queryParams = append(queryParams, parentPost, post.Author, post.Message, thread.Forum, thread.ID, createdTime)
 	}
@@ -223,11 +222,8 @@ func (db *postsRepo) GetThreadAndForumBySlug(slug string) (models.Thread, models
 		return models.Thread{}, models.Error{Code: 404, Message: "Can't find post thread by id:"}
 	}
 
-
 	return thread, models.Error{}
 }
-
-
 
 func (db *postsRepo) CheckValidParent(thread, parent int) bool {
 	if parent == 0 {

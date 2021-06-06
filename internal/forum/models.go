@@ -7,7 +7,7 @@ import (
 
 type ForumHandler interface {
 	ForumCreate(c echo.Context) error
- 	ForumGetOne(c echo.Context) error
+	ForumGetOne(c echo.Context) error
 	ThreadCreate(c echo.Context) error
 	ForumGetUsers(c echo.Context) error
 	ForumGetThreads(c echo.Context) error

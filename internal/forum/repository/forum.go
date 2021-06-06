@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx"
-	"time"
 )
 
 type forumRepo struct {
@@ -61,14 +60,14 @@ func (f *forumRepo) CreateNewForum(forum models.Forum) (models.Forum, models.Err
 func (f *forumRepo) GetForum(slug string) (models.Forum, models.Error) {
 	fmt.Println("get forum", slug)
 
-	forum := new(models.Forum)
+	forumm := new(models.Forum)
 	err := f.DB.QueryRow(`select title, "user", slug, posts_count, threads_count from forums where slug = $1`,
-		slug).Scan(&forum.Title, &forum.User, &forum.Slug, &forum.Posts, &forum.Threads)
+		slug).Scan(&forumm.Title, &forumm.User, &forumm.Slug, &forumm.Posts, &forumm.Threads)
 	if err != nil {
 		return models.Forum{}, models.Error{Code: 404}
 	}
 
-	return *forum, models.Error{Code: 200}
+	return *forumm, models.Error{Code: 200}
 }
 
 func (f *forumRepo) CreateThread(slug string, thread models.Thread) (models.Thread, models.Error) {
@@ -79,7 +78,7 @@ func (f *forumRepo) CreateThread(slug string, thread models.Thread) (models.Thre
 	err := f.DB.QueryRow("select id from users where nickname=$1", thread.Author).Scan(&id)
 	if err == pgx.ErrNoRows {
 		fmt.Println("404")
-		return models.Thread{}, models.Error{Code: 404, Message: "Can't find thread author by nickname: "+thread.Author}
+		return models.Thread{}, models.Error{Code: 404, Message: "Can't find thread author by nickname: " + thread.Author}
 	}
 
 	errr := f.DB.QueryRow(`
@@ -90,12 +89,12 @@ func (f *forumRepo) CreateThread(slug string, thread models.Thread) (models.Thre
 		thread.Title, thread.Author, thread.Message, slug, thread.Slug, thread.Created).Scan(&thread.ID, &thread.Forum)
 
 	dbErr, _ := errr.(pgx.PgError)
-	if dbErr.Code == pgerrcode.ForeignKeyViolation ||  dbErr.Code == pgerrcode.NotNullViolation {
+	if dbErr.Code == pgerrcode.ForeignKeyViolation || dbErr.Code == pgerrcode.NotNullViolation {
 		fmt.Println("404")
-		return models.Thread{}, models.Error{Code: 404, Message: "Can't find thread forum by slug: "+thread.Slug}
+		return models.Thread{}, models.Error{Code: 404, Message: "Can't find thread forum by slug: " + thread.Slug}
 
 	}
-	if errr != nil  { // если такой форум уже еть
+	if errr != nil { // если такой форум уже еть
 		fmt.Println("409")
 		return models.Thread{}, models.Error{Code: 409}
 	}
@@ -107,7 +106,7 @@ func (f *forumRepo) CreateThread(slug string, thread models.Thread) (models.Thre
 func (f *forumRepo) GetUsers(slug string, params models.ParseParams) ([]models.User, models.Error) {
 	var queryParametres []interface{}
 	query := `
-		select u.nickname, u.fullname, u.email, u.about from
+		select u.nickname, u.fullname, u.email, u.about, u.id from
 		users u
 		join forum_users uf on uf.userNickname = u.nickname
         where uf.forumSlug = $1
@@ -156,6 +155,7 @@ func (f *forumRepo) GetUsers(slug string, params models.ParseParams) ([]models.U
 			&user.FullName,
 			&user.Email,
 			&user.About,
+			&user.ID,
 		)
 		fmt.Println("scan forum user error:", err)
 		if err != nil {
@@ -185,12 +185,11 @@ func (f *forumRepo) GetThreads(slug string, params models.ParseParams) ([]models
 			query += "and created >= $2 "
 		}
 
-		layout := "2006-01-02T15:04:05.000Z"
-		str := params.Since
-		t, _ := time.Parse(layout, str)
-		//t = t.Add(time.Hour * 3) // TODO ВРЕМЕННО ДЛЯ КОМПА
+		//layout := "2006-01-02T15:04:05.000Z"
+		//str := params.Since
+		//t, _ := time.Parse(layout, str)
 
-		queryParams = append(queryParams,t)
+		queryParams = append(queryParams, params.Since)
 	}
 
 	if !params.Desc {
@@ -231,10 +230,8 @@ func (f *forumRepo) GetThreads(slug string, params models.ParseParams) ([]models
 			&thread.Forum,
 		)
 
-		//thread.Created = thread.Created.Add(-time.Hour * 3) // TODO ВРЕМЕННО ДЛЯ КОМПА
-
 		if err != nil {
-			return  []models.Thread{}, models.Error{Code: 404}
+			return []models.Thread{}, models.Error{Code: 404}
 		}
 
 		threads = append(threads, *thread)
@@ -250,12 +247,12 @@ func (f *forumRepo) GetThreadBySlug(slug string) (models.Thread, models.Error) {
 	thread := models.Thread{}
 	_ = f.DB.QueryRow("select id, title, author, message, votes, slug, created, forum from threads where slug = $1", slug).
 		Scan(&thread.ID,
-		&thread.Title,
-		&thread.Author,
-		&thread.Message,
-		&thread.Votes,
-		&thread.Slug,
-		&thread.Created,
-		&thread.Forum)
+			&thread.Title,
+			&thread.Author,
+			&thread.Message,
+			&thread.Votes,
+			&thread.Slug,
+			&thread.Created,
+			&thread.Forum)
 	return thread, models.Error{Code: 409}
 }
