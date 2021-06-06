@@ -7,49 +7,49 @@ DROP TABLE IF EXISTS forums CASCADE;
 DROP TABLE IF EXISTS threads CASCADE;
 DROP TABLE IF EXISTS forum_users CASCADE;
 
-CREATE TABLE users (
-                       id SERIAL NOT NULL PRIMARY KEY ,
-                       nickname CITEXT COLLATE "POSIX" NOT NULL UNIQUE,
-                       fullname TEXT,
-                       about TEXT,
-                       email CITEXT UNIQUE
+CREATE UNLOGGED TABLE users (
+                                id SERIAL NOT NULL PRIMARY KEY ,
+                                nickname CITEXT COLLATE "POSIX" NOT NULL UNIQUE,
+                                fullname TEXT,
+                                about TEXT,
+                                email CITEXT UNIQUE
 );
 
-CREATE TABLE forums (
-                        id SERIAL NOT NULL PRIMARY KEY,
-                        title TEXT NOT NULL,
+CREATE UNLOGGED TABLE forums (
+                                 id SERIAL NOT NULL PRIMARY KEY,
+                                 title TEXT NOT NULL,
     -- "user" CITEXT REFERENCES users(nickname) ON DELETE CASCADE NOT NULL,
-                        "user" CITEXT NOT NULL,
-                        FOREIGN KEY ("user") REFERENCES Users (nickname),
-                        slug CITEXT UNIQUE NOT NULL,
-                        created TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
-                        threads_count INTEGER DEFAULT 0,
-                        posts_count INTEGER DEFAULT 0
+                                 "user" CITEXT NOT NULL,
+                                 FOREIGN KEY ("user") REFERENCES Users (nickname),
+                                 slug CITEXT UNIQUE NOT NULL,
+                                 created TIMESTAMP(3) WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+                                 threads_count INTEGER DEFAULT 0,
+                                 posts_count INTEGER DEFAULT 0
 );
 
-CREATE TABLE threads (
-                         id SERIAL NOT NULL PRIMARY KEY,
-                         title TEXT NOT NULL,
-                         slug CITEXT unique,
-                         "author" CITEXT REFERENCES users(nickname) ON DELETE CASCADE NOT NULL,
+CREATE UNLOGGED TABLE threads (
+                                  id SERIAL NOT NULL PRIMARY KEY,
+                                  title TEXT NOT NULL,
+                                  slug CITEXT unique,
+                                  "author" CITEXT REFERENCES users(nickname) ON DELETE CASCADE NOT NULL,
     -- "forum" CITEXT REFERENCES forums(slug) ON DELETE CASCADE  NOT NULL,
-                         forum CITEXT NOT NULL,
-                         FOREIGN KEY (forum) REFERENCES forums (slug),
-                         message TEXT NOT NULL,
-                         votes INT DEFAULT 0 NOT NULL,
-                         created TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+                                  forum CITEXT NOT NULL,
+                                  FOREIGN KEY (forum) REFERENCES forums (slug),
+                                  message TEXT NOT NULL,
+                                  votes INT DEFAULT 0 NOT NULL,
+                                  created TIMESTAMP(3) WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP  NOT NULL
 );
 
-CREATE TABLE posts (
-                       id SERIAL NOT NULL PRIMARY KEY,
-                       parent INTEGER,
-                       "author" CITEXT REFERENCES users(nickname) ON DELETE CASCADE NOT NULL,
-                       message TEXT NOT NULL,
-                       isEdited BOOLEAN NOT NULL DEFAULT FALSE,
-                       "forum" CITEXT REFERENCES forums(slug) ON DELETE CASCADE NOT NULL,
-                       "thread" INTEGER REFERENCES threads(id) ON DELETE CASCADE NOT NULL,-- ??? надо бы slug
-                       created TIMESTAMP NOT NULL,
-                       path INTEGER[] NOT NULL
+CREATE UNLOGGED TABLE posts (
+                                id SERIAL NOT NULL PRIMARY KEY,
+                                parent INTEGER,
+                                "author" CITEXT REFERENCES users(nickname) ON DELETE CASCADE NOT NULL,
+                                message TEXT NOT NULL,
+                                isEdited BOOLEAN NOT NULL DEFAULT FALSE,
+                                "forum" CITEXT REFERENCES forums(slug) ON DELETE CASCADE NOT NULL,
+                                "thread" INTEGER REFERENCES threads(id) ON DELETE CASCADE NOT NULL,-- ??? надо бы slug
+                                created TIMESTAMP(3) WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+                                path INTEGER[] NOT NULL
 );
 
 CREATE OR REPLACE FUNCTION new_thread_added() RETURNS TRIGGER AS
@@ -105,10 +105,10 @@ create trigger add_path
 execute procedure add_path();
 
 -- FORUM USERS --
-CREATE TABLE forum_users (
-                             userNickname  CITEXT REFERENCES users (nickname),
-                             forumSlug CITEXT REFERENCES forums (slug), -- изменила из-за GetUsers
-                             unique (userNickname, forumSlug)
+CREATE UNLOGGED TABLE forum_users (
+                                      userNickname  CITEXT REFERENCES users (nickname),
+                                      forumSlug CITEXT REFERENCES forums (slug), -- изменила из-за GetUsers
+                                      unique (userNickname, forumSlug)
 );
 
 DROP FUNCTION IF EXISTS new_forum_user_added() CASCADE;
@@ -131,11 +131,11 @@ create trigger new_forum_user_added
 execute procedure new_forum_user_added();
 
 -- VOTES --
-CREATE TABLE votes (
-                       "user" CITEXT REFERENCES users(nickname),
-                       thread CITEXT REFERENCES threads(slug),
-                       vote INTEGER,
-                       UNIQUE (thread, "user")
+CREATE UNLOGGED TABLE votes (
+                                "user" CITEXT REFERENCES users(nickname),
+                                thread CITEXT REFERENCES threads(slug),
+                                vote INTEGER,
+                                UNIQUE (thread, "user")
 );
 
 DROP FUNCTION IF EXISTS new_vote() CASCADE;
