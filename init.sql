@@ -8,8 +8,8 @@ DROP TABLE IF EXISTS threads CASCADE;
 DROP TABLE IF EXISTS forum_users CASCADE;
 
 CREATE TABLE users (
-                       id SERIAL NOT NULL PRIMARY KEY,
-                       nickname CITEXT NOT NULL UNIQUE,
+                       id SERIAL NOT NULL PRIMARY KEY ,
+                       nickname CITEXT COLLATE "POSIX" NOT NULL UNIQUE,
                        fullname TEXT,
                        about TEXT,
                        email CITEXT UNIQUE
@@ -22,15 +22,15 @@ CREATE TABLE forums (
                         "user" CITEXT NOT NULL,
                         FOREIGN KEY ("user") REFERENCES Users (nickname),
                         slug CITEXT UNIQUE NOT NULL,
-                        posts INT DEFAULT 0,
-                        threads INT DEFAULT 0,
-                        created TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
+                        created TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
+                        threads_count INTEGER DEFAULT 0,
+                        posts_count INTEGER DEFAULT 0
 );
 
 CREATE TABLE threads (
                          id SERIAL NOT NULL PRIMARY KEY,
                          title TEXT NOT NULL,
-                         slug CITEXT unique, -- ????????????????
+                         slug CITEXT unique,
                          "author" CITEXT REFERENCES users(nickname) ON DELETE CASCADE NOT NULL,
     -- "forum" CITEXT REFERENCES forums(slug) ON DELETE CASCADE  NOT NULL,
                          forum CITEXT NOT NULL,
@@ -51,6 +51,33 @@ CREATE TABLE posts (
                        created TIMESTAMP NOT NULL,
                        path INTEGER[] NOT NULL
 );
+
+CREATE OR REPLACE FUNCTION new_thread_added() RETURNS TRIGGER AS
+$new_thread_added$
+begin
+    update forums set threads_count = threads_count + 1
+    where slug = new.forum;
+
+    return new;
+end;
+$new_thread_added$ LANGUAGE plpgsql;
+create trigger new_thread_added
+    before insert on threads for each row
+execute procedure new_thread_added();
+
+
+CREATE OR REPLACE FUNCTION new_post_added() RETURNS TRIGGER AS
+$new_post_added$
+begin
+    update forums set posts_count = posts_count + 1
+    where slug = new.forum;
+
+    return new;
+end;
+$new_post_added$ LANGUAGE plpgsql;
+create trigger new_post_added
+    before insert on posts for each row
+execute procedure new_post_added();
 
 
 CREATE OR REPLACE FUNCTION add_path() RETURNS TRIGGER AS
@@ -73,19 +100,39 @@ begin
     return new;
 end;
 $add_path$ LANGUAGE plpgsql;
-
 create trigger add_path
     before insert on posts for each row
 execute procedure add_path();
 
-
+-- FORUM USERS --
 CREATE TABLE forum_users (
-                             userID  INTEGER REFERENCES users (id),
-                             forumSlug CITEXT REFERENCES forums (slug) -- изменила из-за GetUsers
+                             userNickname  CITEXT REFERENCES users (nickname),
+                             forumSlug CITEXT REFERENCES forums (slug), -- изменила из-за GetUsers
+                             unique (userNickname, forumSlug)
 );
 
+DROP FUNCTION IF EXISTS new_forum_user_added() CASCADE;
+CREATE OR REPLACE FUNCTION new_forum_user_added() RETURNS TRIGGER AS
+$new_forum_user_added$
+begin
+    insert into forum_users (userNickname, forumSlug)
+    values (new.author, new.forum) on conflict do nothing;
+
+    return null;
+end;
+$new_forum_user_added$ LANGUAGE plpgsql;
+drop trigger if exists new_forum_user_added on posts;
+create trigger new_forum_user_added
+    AFTER insert on posts for each row
+execute procedure new_forum_user_added();
+drop trigger if exists new_forum_user_added on threads;
+create trigger new_forum_user_added
+    AFTER insert on threads for each row
+execute procedure new_forum_user_added();
+
+-- VOTES --
 CREATE TABLE votes (
-                       "user" CITEXT REFERENCES users(nickname), -- nickname?
+                       "user" CITEXT REFERENCES users(nickname),
                        thread CITEXT REFERENCES threads(slug),
                        vote INTEGER,
                        UNIQUE (thread, "user")

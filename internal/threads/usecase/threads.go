@@ -36,14 +36,17 @@ func (t threadsUsecase) GetThreadPosts(slugOrId string, params models.ParseParam
 	fmt.Println("slugorid:", slugOrId)
 	if id != 0 {
 		fmt.Println("id:", id)
-		_, err = t.threadsRepository.GetThreadPostsById(id, slugOrId, params)
+		id, err = t.threadsRepository.GetThreadIDBySlug(slugOrId, id)
 		if err.Code != 200 {
 			err.Message = fmt.Sprintf("Can't find thread by id: %d", id)
+			return nil, err
 		}
 	} else {
-		id, _ = t.threadsRepository.GetThreadIDBySlug(slugOrId)
+		id, err = t.threadsRepository.GetThreadIDBySlug(slugOrId, 0)
+		fmt.Println("get by slug")
 		if err.Code != 200 {
 			err.Message = "Can't find thread by slug: " + slugOrId
+			return nil, err
 		}
 	}
 	return t.threadsRepository.GetThreadPostsById(id, slugOrId, params)

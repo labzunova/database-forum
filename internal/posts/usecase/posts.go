@@ -5,6 +5,7 @@ import (
 	"DBproject/models"
 	"fmt"
 	"strconv"
+	"time"
 )
 
 type postsUsecase struct {
@@ -25,7 +26,7 @@ func (p postsUsecase) GetPostInfo(id int, related []string) (post posts.FullPost
 	error.Code = 500
 
 	for _, info := range related {
-		fmt.Println("related")
+		fmt.Println("related", info)
 		switch info {
 		case "user":
 			user, err := p.postsRepository.GetPostAuthor(id)
@@ -43,24 +44,16 @@ func (p postsUsecase) GetPostInfo(id int, related []string) (post posts.FullPost
 			post.Forum = &forum
 		case "thread":
 			thread, err := p.postsRepository.GetPostThread(id)
+			thread.Created = thread.Created.Add(-time.Hour * 3) // TODO ВРЕМЕННО ДЛЯ КОМПА
 			fmt.Println("post thread", thread)
 			if err.Code != 200 {
 				return post, error
 			}
 			post.Thread = &thread
 		default:
+			fmt.Println("error in related")
 			return post, error
 		}
-	}
-
-	if post.Post.ID == 0 {
-		post.Post = nil
-	}
-	if post.Thread.Slug == "" {
-		post.Thread = nil
-	}
-	if post.Forum.Slug == "" {
-		post.Forum = nil
 	}
 
 	error.Code = 200

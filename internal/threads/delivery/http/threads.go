@@ -67,7 +67,7 @@ func (h *Handler) ThreadGetPosts(c echo.Context) error {
 	posts, err := h.ThreadsUcase.GetThreadPosts(slugOrId, *getPosts)
 	if err.Code == 404 {
 		err.Message = "Can't find forum by slug: " + slugOrId
-		return c.JSON(http.StatusNotFound, "Ветка отсутствует в форуме")
+		return c.JSON(http.StatusNotFound, err)
 	}
 
 	return c.JSON(http.StatusOK, posts)

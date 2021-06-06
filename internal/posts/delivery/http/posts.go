@@ -43,9 +43,6 @@ func (h *Handler) PostGetOne(c echo.Context) error {
 		return c.JSON(http.StatusNotFound, err)
 	}
 
-	fullPost.Post = &post
-	fmt.Println("post", fullPost)
-
 	if len(related) != 0 {
 		fmt.Println("related exist")
 		fullPost, err = h.PostsUcase.GetPostInfo(int(id), relatedSlice)
@@ -55,8 +52,10 @@ func (h *Handler) PostGetOne(c echo.Context) error {
 		}
 	}
 
+	fullPost.Post = &post
 	fmt.Println("done")
 	fmt.Println("post", fullPost)
+
 	return c.JSON(http.StatusOK, fullPost)
 }
 
@@ -87,17 +86,18 @@ func (h *Handler) PostsCreate(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err)
 	}
 
-	if len(newPosts) == 0 {
-		return c.JSON(http.StatusCreated, newPosts)
-	}
-
 	posts, errr := h.PostsUcase.CreatePosts(slug, newPosts)
 	switch errr.Code {
 	case 404:
+		fmt.Println("not found")
 		return c.JSON(http.StatusNotFound, errr)
 	case 409:
 		errr.Message = "Parent post was created in another thread"
 		return c.JSON(http.StatusConflict, errr)
+	}
+
+	if len(newPosts) == 0 {
+		return c.JSON(http.StatusCreated, newPosts)
 	}
 
 	return c.JSON(http.StatusCreated, posts)

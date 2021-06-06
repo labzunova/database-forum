@@ -4,17 +4,20 @@ import (
 	"DBproject/internal/posts"
 	"DBproject/models"
 	"fmt"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx"
 	"time"
 )
 
 type postsRepo struct {
 	DB *pgx.ConnPool
+//	DbCreate *pgxpool.Pool
 }
 
 func NewPostsRepo(db *pgx.ConnPool) posts.PostsRepo {
 	return &postsRepo{
 		DB: db,
+	//	DbCreate: DbCreate,
 	}
 }
 
@@ -67,7 +70,7 @@ func (db *postsRepo) GetPostThread(pid int) (models.Thread, models.Error) {
 func (db *postsRepo) GetPostForum(pid int) (models.Forum, models.Error) {
 	forum := models.Forum{}
 	err := db.DB.QueryRow(`
-	select f.title, f.user, f.slug, f.posts, f.threads from forums f
+	select f.title, f.user, f.slug, f.posts_count, f.threads_count from forums f
 	join posts p on f.slug = p.forum
 	where p.id=$1`, pid).Scan(&forum.Title, &forum.User, &forum.Slug, &forum.Posts, &forum.Threads)
 	fmt.Println("get post forum error", err)
@@ -105,14 +108,24 @@ func (db *postsRepo) UpdatePost(id int, message string) (models.Post, models.Err
 }
 
 func (db *postsRepo) CreatePosts(thread models.Thread, posts []models.Post) ([]models.Post, models.Error) {
+	if len(posts) != 0 && posts[0].Parent!= 0 {
+		var parentCheck int
+		err := db.DB.QueryRow("select thread from posts where id = $1", posts[0].Parent).Scan(&parentCheck)
+		if err != nil {
+			return nil, models.Error{Code: 409, Message: "Parent post was created in another thread"}
+		}
+	}
+
 	createdTime := time.Now()
 
 	query := `insert into posts (parent, author, message, forum, thread, created) values `
 	queryParams := make([]interface{}, 0)
 
+
 	last := len(posts) - 1
 	for i, post := range posts {
 		fmt.Println("post", post)
+
 		if !db.CheckValidParent(thread.ID, post.Parent) {
 			return nil, models.Error{Code: 409}
 		}
@@ -134,11 +147,20 @@ func (db *postsRepo) CreatePosts(thread models.Thread, posts []models.Post) ([]m
 
 	query += " returning id, created"
 
+	//transaction, err := db.DB.Begin()
+	//rows, err := transaction.Query(query, queryParams...)
+	//if err != nil {
+	//	transaction.Rollback()
+	//	_, ok := err.(pgx.PgError)
+	//	if ok {
+	//		return nil, models.Error{Code: 404, Message: fmt.Sprintf("%d", 1)}
+	//	}
+	//}
+
+	//transaction, err := db.DbCreate.Begin(context.Background())
+	//batch := new(pgx.Batch)
+	//batch.Queue(query, queryParams...)
 	rows, err := db.DB.Query(query, queryParams...)
-	_, ok := err.(pgx.PgError)
-	if ok {
-		return nil, models.Error{Code: 404, Message: fmt.Sprintf("%d", 1)}
-	}
 
 	fmt.Println("ADDING POST ERROR ", err)
 	if err != nil {
@@ -157,6 +179,18 @@ func (db *postsRepo) CreatePosts(thread models.Thread, posts []models.Post) ([]m
 		i++
 	}
 
+	if dbErr, ok := rows.Err().(pgx.PgError); ok {
+		fmt.Println("PGX ERROR")
+		switch dbErr.Code {
+		case pgerrcode.RaiseException:
+			fmt.Println("40404")
+			return nil, models.Error{Code: 404, Message: "Post parent not found"}
+		case "23503":
+			fmt.Println("23503")
+			return nil, models.Error{Code: 404, Message: "User not found"}
+		}
+	}
+
 	return posts, models.Error{}
 }
 
@@ -168,8 +202,8 @@ func (db *postsRepo) GetThreadAndForumById(id int) (models.Thread, models.Error)
 		Scan(&thread.Slug, &thread.Forum)
 	thread.ID = id
 	fmt.Println(thread)
-	if err != nil {
-		return models.Thread{}, models.Error{Code: 404}
+	if err != nil || thread.Forum == "" {
+		return models.Thread{}, models.Error{Code: 404, Message: "Can't find post thread by id:"}
 	}
 
 	return thread, models.Error{}
@@ -182,9 +216,13 @@ func (db *postsRepo) GetThreadAndForumBySlug(slug string) (models.Thread, models
 	err := db.DB.QueryRow("select id, forum from threads where slug=$1", slug).
 		Scan(&thread.ID, &thread.Forum)
 	thread.Slug = slug
-	if err != nil {
-		return models.Thread{}, models.Error{Code: 404}
+	fmt.Println(thread)
+	fmt.Println(thread.ID, thread.Forum)
+	if err != nil || thread.ID == 0 {
+		fmt.Println("ERRROROROR")
+		return models.Thread{}, models.Error{Code: 404, Message: "Can't find post thread by id:"}
 	}
+
 
 	return thread, models.Error{}
 }

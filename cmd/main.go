@@ -65,6 +65,7 @@ func main() {
 			MaxConnections: 2000,
 		})
 
+	//conn2, err := pgxpool.Connect(context.Background(), "host=localhost dbname=forums user=lbzv password=1111 pool_max_conns=10")
 
 	//dsn := fmt.Sprintf("user=%s password=%s dbname=%s", "lbznv", "1111", "forums")
 	//db, err := sql.Open("postgres", dsn)
