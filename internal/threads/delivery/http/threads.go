@@ -7,7 +7,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"net/http"
 	"strconv"
-	"time"
 )
 
 type Handler struct {
@@ -30,7 +29,7 @@ func (h *Handler) ThreadGetOne(c echo.Context) error {
 		return c.JSON(http.StatusNotFound, err)
 	}
 
-	thread.Created = thread.Created.Add(-time.Hour * 3) // TODO ВРЕМЕННО ДЛЯ КОМПА
+	//thread.Created = thread.Created.Add(-time.Hour * 3) // TODO ВРЕМЕННО ДЛЯ КОМПА
 
 	return c.JSON(http.StatusOK, thread)
 }
@@ -48,7 +47,7 @@ func (h *Handler) ThreadUpdate(c echo.Context) error {
 		return c.JSON(http.StatusNotFound, err)
 	}
 
-	thread.Created = thread.Created.Add(-time.Hour * 3) // TODO ВРЕМЕННО ДЛЯ КОМПА
+	//thread.Created = thread.Created.Add(-time.Hour * 3) // TODO ВРЕМЕННО ДЛЯ КОМПА
 
 	return c.JSON(http.StatusOK, thread)
 }
@@ -91,7 +90,7 @@ func (h *Handler) ThreadVote(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, "Error")
 	}
 
-	thread.Created = thread.Created.Add(-time.Hour * 3) // TODO ВРЕМЕННО ДЛЯ КОМПА
+	//thread.Created = thread.Created.Add(-time.Hour * 3) // TODO ВРЕМЕННО ДЛЯ КОМПА
 
 	return c.JSON(http.StatusOK, thread)
 }

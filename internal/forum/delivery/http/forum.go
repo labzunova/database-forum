@@ -7,7 +7,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"net/http"
 	"strconv"
-	"time"
 )
 
 type Handler struct {
@@ -70,7 +69,7 @@ func (h Handler) ThreadCreate(c echo.Context) error {
 		return c.JSON(http.StatusNotFound, err)
 	case 409:
 		fmt.Println(thread.Created)
-		thread.Created = thread.Created.Add(-time.Hour * 3) // TODO ВРЕМЕННО ДЛЯ КОМПА
+		//thread.Created = thread.Created.Add(-time.Hour * 3) // TODO ВРЕМЕННО ДЛЯ КОМПА
 		fmt.Println(thread.Created)
 		return c.JSON(http.StatusConflict, thread)
 	}
