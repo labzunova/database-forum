@@ -7,6 +7,7 @@ DROP TABLE IF EXISTS forums CASCADE;
 DROP TABLE IF EXISTS threads CASCADE;
 DROP TABLE IF EXISTS forum_users CASCADE;
 
+-- USERS --
 CREATE UNLOGGED TABLE users (
                                 id SERIAL NOT NULL PRIMARY KEY ,
                                 nickname CITEXT COLLATE "POSIX" NOT NULL UNIQUE,
@@ -14,7 +15,9 @@ CREATE UNLOGGED TABLE users (
                                 about TEXT,
                                 email CITEXT UNIQUE
 );
+CREATE INDEX IF NOT EXISTS users_full ON users (nickname, fullname, about, email);
 
+-- FORUMS --
 CREATE UNLOGGED TABLE forums (
                                  id SERIAL NOT NULL PRIMARY KEY,
                                  title TEXT NOT NULL,
@@ -27,11 +30,13 @@ CREATE UNLOGGED TABLE forums (
                                  posts_count INTEGER DEFAULT 0
 );
 
+-- THREADS --
 CREATE UNLOGGED TABLE threads (
                                   id SERIAL NOT NULL PRIMARY KEY,
                                   title TEXT NOT NULL,
                                   slug CITEXT unique,
-                                  "author" CITEXT REFERENCES users(nickname) ON DELETE CASCADE NOT NULL,
+                                  "author" CITEXT  NOT NULL,
+                                  FOREIGN KEY ("author") REFERENCES users(nickname) ON DELETE CASCADE,
     -- "forum" CITEXT REFERENCES forums(slug) ON DELETE CASCADE  NOT NULL,
                                   forum CITEXT NOT NULL,
                                   FOREIGN KEY (forum) REFERENCES forums (slug),
@@ -40,17 +45,7 @@ CREATE UNLOGGED TABLE threads (
                                   created TIMESTAMP(3) WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP  NOT NULL
 );
 
-CREATE UNLOGGED TABLE posts (
-                                id SERIAL NOT NULL PRIMARY KEY,
-                                parent INTEGER,
-                                "author" CITEXT REFERENCES users(nickname) ON DELETE CASCADE NOT NULL,
-                                message TEXT NOT NULL,
-                                isEdited BOOLEAN NOT NULL DEFAULT FALSE,
-                                "forum" CITEXT REFERENCES forums(slug) ON DELETE CASCADE NOT NULL,
-                                "thread" INTEGER REFERENCES threads(id) ON DELETE CASCADE NOT NULL,-- ??? надо бы slug
-                                created TIMESTAMP(3) WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
-                                path INTEGER[] NOT NULL
-);
+CREATE INDEX IF NOT EXISTS thread_forum_and_created ON threads (forum, created); -- для get forum threads
 
 CREATE OR REPLACE FUNCTION new_thread_added() RETURNS TRIGGER AS
 $new_thread_added$
@@ -65,6 +60,26 @@ create trigger new_thread_added
     before insert on threads for each row
 execute procedure new_thread_added();
 
+-- POSTS --
+CREATE UNLOGGED TABLE posts (
+                                id SERIAL NOT NULL PRIMARY KEY,
+                                parent INTEGER,
+                                "author" CITEXT NOT NULL,
+                                FOREIGN KEY ("author") REFERENCES users(nickname) ON DELETE CASCADE,
+                                message TEXT NOT NULL,
+                                isEdited BOOLEAN NOT NULL DEFAULT FALSE,
+                                "forum" CITEXT NOT NULL,
+                                FOREIGN KEY ("forum") REFERENCES forums(slug) ON DELETE CASCADE,
+                                "thread" INTEGER NOT NULL,-- ??? надо бы slug
+                                FOREIGN KEY ("thread") REFERENCES threads(id) ON DELETE CASCADE,
+                                created TIMESTAMP(3) WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+                                path INTEGER[] NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS post_id_and_thread ON posts (thread, id);
+CREATE INDEX IF NOT EXISTS post_path_and_thread ON posts (thread, path); -- запрос для сортировка
+CREATE INDEX IF NOT EXISTS post_path_first_and_thread ON posts (thread, path); -- запрос для сортировка
+CREATE INDEX IF NOT EXISTS post_path_parent_and_thread ON posts (thread, path, parent); -- для parentTree сортирвки
 
 CREATE OR REPLACE FUNCTION new_post_added() RETURNS TRIGGER AS
 $new_post_added$
@@ -104,10 +119,14 @@ create trigger add_path
     before insert on posts for each row
 execute procedure add_path();
 
+
 -- FORUM USERS --
 CREATE UNLOGGED TABLE forum_users (
-                                      userNickname  CITEXT REFERENCES users (nickname),
+                                      userNickname CITEXT REFERENCES users (nickname),
+                                      FOREIGN KEY (userNickname) REFERENCES users (nickname),
                                       forumSlug CITEXT REFERENCES forums (slug), -- изменила из-за GetUsers
+                                      FOREIGN KEY (forumSlug) REFERENCES forums (slug),
+
                                       unique (userNickname, forumSlug)
 );
 
@@ -132,8 +151,10 @@ execute procedure new_forum_user_added();
 
 -- VOTES --
 CREATE UNLOGGED TABLE votes (
-                                "user" CITEXT REFERENCES users(nickname),
-                                thread CITEXT REFERENCES threads(slug),
+                                "user" CITEXT,
+                                FOREIGN KEY ("user") REFERENCES users (nickname),
+                                thread CITEXT,
+                                FOREIGN KEY (thread)  REFERENCES threads(slug),
                                 vote INTEGER,
                                 UNIQUE (thread, "user")
 );
