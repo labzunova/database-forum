@@ -164,7 +164,7 @@ func (db *threadsRepo) GetThreadPostsById(id int, slugOrId string, params models
 			query = tree
 			queryParameters = append(queryParameters, params.Limit)
 		default:
-			return nil, models.Error{Code: 404}
+			return nil, models.Error{Code: 400}
 		}
 
 	case "parent_tree":
@@ -182,7 +182,7 @@ func (db *threadsRepo) GetThreadPostsById(id int, slugOrId string, params models
 			query = parentTree
 			queryParameters = append(queryParameters, params.Limit)
 		default:
-			return nil, models.Error{Code: 404}
+			return nil, models.Error{Code: 400}
 		}
 
 	default: // flat
@@ -224,7 +224,7 @@ func (db *threadsRepo) GetThreadPostsById(id int, slugOrId string, params models
 			`
 			queryParameters = append(queryParameters, params.Limit)
 		default:
-			return nil, models.Error{Code: 404}
+			return nil, models.Error{Code: 400}
 		}
 	}
 
@@ -266,6 +266,8 @@ func (db *threadsRepo) GetThreadPostsById(id int, slugOrId string, params models
 
 		posts = append(posts, post)
 	}
+	fmt.Println(posts)
+	fmt.Println(id)
 fmt.Println("enddd")
 	return posts, models.Error{Code: 200}
 }
