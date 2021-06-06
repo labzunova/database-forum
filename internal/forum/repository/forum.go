@@ -41,8 +41,7 @@ func (f *forumRepo) CreateNewForum(forum models.Forum) (models.Forum, models.Err
 	//		return models.Forum{}, models.Error{Code: 404}
 	//	}
 	//	if dbErr.Code == pgerrcode.UniqueViolation { // если такой форум уже еть
-	//		return models.Forum{}, models.Error{Code: 409}
-	//	}
+	//
 	//}
 
 	if err != nil && err != sql.ErrNoRows { // если такой форум уже еть
@@ -58,11 +57,13 @@ func (f *forumRepo) CreateNewForum(forum models.Forum) (models.Forum, models.Err
 }
 
 func (f *forumRepo) GetForum(slug string) (models.Forum, models.Error) {
-	fmt.Println("get forum", slug)
-
+	fmt.Println("       get forum", slug)
 	forumm := new(models.Forum)
 	err := f.DB.QueryRow(`select title, "user", slug, posts_count, threads_count from forums where slug = $1`,
 		slug).Scan(&forumm.Title, &forumm.User, &forumm.Slug, &forumm.Posts, &forumm.Threads)
+	fmt.Println("forum", forumm)
+	fmt.Println("err", err)
+
 	if err != nil {
 		return models.Forum{}, models.Error{Code: 404}
 	}
@@ -73,7 +74,11 @@ func (f *forumRepo) GetForum(slug string) (models.Forum, models.Error) {
 func (f *forumRepo) CreateThread(slug string, thread models.Thread) (models.Thread, models.Error) {
 	fmt.Println("create thread: ", slug, thread)
 
-	// pgerrcode.NotNullViolation не работает todo
+	var threadSlug *string
+	if thread.Slug != "" {
+		threadSlug = &thread.Slug
+	}
+
 	var id int
 	err := f.DB.QueryRow("select id from users where nickname=$1", thread.Author).Scan(&id)
 	if err == pgx.ErrNoRows {
@@ -86,7 +91,7 @@ func (f *forumRepo) CreateThread(slug string, thread models.Thread) (models.Thre
     (title, author, message, forum, slug, created) 
 	values ($1,$2,$3,(select slug from forums where slug = $4),$5,$6) 
 	returning id, forum`,
-		thread.Title, thread.Author, thread.Message, slug, thread.Slug, thread.Created).Scan(&thread.ID, &thread.Forum)
+		thread.Title, thread.Author, thread.Message, slug, threadSlug, thread.Created).Scan(&thread.ID, &thread.Forum)
 
 	dbErr, _ := errr.(pgx.PgError)
 	if dbErr.Code == pgerrcode.ForeignKeyViolation || dbErr.Code == pgerrcode.NotNullViolation {
@@ -169,13 +174,14 @@ func (f *forumRepo) GetUsers(slug string, params models.ParseParams) ([]models.U
 }
 
 func (f *forumRepo) GetThreads(slug string, params models.ParseParams) ([]models.Thread, models.Error) {
-	fmt.Println("get threads: ", slug, params)
-
+	fmt.Println("       get threads: ", slug, params)
+fmt.Println("            ", slug)
 	var queryParams []interface{}
 	query := `
-		select id, title, author, message, votes, slug, created, forum from threads 
+		select id, title, author, message, votes, slug, created from threads 
 		where forum = $1 `
 	queryParams = append(queryParams, slug)
+	fmt.Println("            ", slug)
 
 	if params.Since != "" {
 		fmt.Println("with since")
@@ -191,6 +197,7 @@ func (f *forumRepo) GetThreads(slug string, params models.ParseParams) ([]models
 
 		queryParams = append(queryParams, params.Since)
 	}
+	fmt.Println("            ", slug)
 
 	if !params.Desc {
 		query += "order by created "
@@ -198,6 +205,7 @@ func (f *forumRepo) GetThreads(slug string, params models.ParseParams) ([]models
 		fmt.Println("with desc")
 		query += "order by created desc "
 	}
+	fmt.Println("            ", slug)
 
 	if params.Limit != 0 {
 		if params.Since == "" {
@@ -209,15 +217,20 @@ func (f *forumRepo) GetThreads(slug string, params models.ParseParams) ([]models
 		}
 		queryParams = append(queryParams, params.Limit)
 	}
+	fmt.Println("            ", slug)
 
 	forumThreads, err := f.DB.Query(query, queryParams...)
+	fmt.Println("            ", slug)
+
+	fmt.Println(err)
 	if err != nil {
 		return []models.Thread{}, models.Error{Code: 404}
 	}
 
+	var threadSlug *string
+
 	threads := make([]models.Thread, 0)
 	for forumThreads.Next() {
-
 		thread := new(models.Thread)
 		err = forumThreads.Scan(
 			&thread.ID,
@@ -225,10 +238,15 @@ func (f *forumRepo) GetThreads(slug string, params models.ParseParams) ([]models
 			&thread.Author,
 			&thread.Message,
 			&thread.Votes,
-			&thread.Slug,
+			&threadSlug,
 			&thread.Created,
-			&thread.Forum,
 		)
+		fmt.Println("            ", slug)
+		fmt.Println(thread)
+		thread.Forum = slug
+		if threadSlug != nil {
+			thread.Slug = *threadSlug
+		}
 
 		if err != nil {
 			return []models.Thread{}, models.Error{Code: 404}
@@ -237,9 +255,12 @@ func (f *forumRepo) GetThreads(slug string, params models.ParseParams) ([]models
 		threads = append(threads, *thread)
 	}
 
+	fmt.Println(threads)
 	if len(threads) == 0 {
 		return threads, models.Error{Code: 404}
 	}
+	fmt.Println("            ", slug)
+	fmt.Println("return")
 	return threads, models.Error{Code: 200}
 }
 

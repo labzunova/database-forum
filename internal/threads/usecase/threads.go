@@ -34,6 +34,7 @@ func (t threadsUsecase) GetThreadPosts(slugOrId string, params models.ParseParam
 	id := t.SlugOrID(slugOrId)
 	var err models.Error
 	fmt.Println("slugorid:", slugOrId)
+
 	if id != 0 {
 		fmt.Println("id:", id)
 		id, err = t.threadsRepository.GetThreadIDBySlug(slugOrId, id)

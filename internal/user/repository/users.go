@@ -36,9 +36,10 @@ func (db *usersRepo) CreateUser(profile models.User) models.Error {
 func (db *usersRepo) GetUser(nickname string) (models.User, models.Error) {
 	fmt.Println("get user ", nickname)
 
-	user := models.User{}
+	userr := models.User{}
 	err := db.DB.QueryRow("select nickname, fullname, about, email from users where nickname=$1", nickname).
-		Scan(&user.Nickname, &user.FullName, &user.About, &user.Email)
+		Scan(&userr.Nickname, &userr.FullName, &userr.About, &userr.Email)
+	fmt.Println("ERR", err)
 	if err == pgx.ErrNoRows {
 		return models.User{}, models.Error{Code: 404}
 	}
@@ -46,7 +47,7 @@ func (db *usersRepo) GetUser(nickname string) (models.User, models.Error) {
 		return models.User{}, models.Error{Code: 500}
 	}
 
-	return user, models.Error{Code: 200}
+	return userr, models.Error{Code: 200}
 }
 
 func (db *usersRepo) UpdateUser(profile models.User) (models.User, models.Error) {

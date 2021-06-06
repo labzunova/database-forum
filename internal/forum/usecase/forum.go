@@ -4,7 +4,6 @@ import (
 	"DBproject/internal/forum"
 	"DBproject/models"
 	"fmt"
-	"github.com/google/uuid"
 )
 
 type forumUsecase struct {
@@ -26,19 +25,19 @@ func (f forumUsecase) GetForum(id string) (models.Forum, models.Error) {
 }
 
 func (f forumUsecase) CreateThread(slug string, thread models.Thread) (models.Thread, models.Error) {
-	checkSlug := true
-	if thread.Slug == "" {
-		thread.Slug = uuid.New().String()
-		checkSlug = false
-	}
+	//checkSlug := true
+	//if thread.Slug == "" {
+	//	//thread.Slug = uuid.New().String()
+	//	checkSlug = false
+	//}
 	threadNew, err := f.forumRepository.CreateThread(slug, thread)
 	if err.Code == 409 {
 		return f.forumRepository.GetThreadBySlug(thread.Slug)
 	}
 
-	if !checkSlug {
-		threadNew.Slug = ""
-	}
+	//if !checkSlug {
+	//	threadNew.Slug = ""
+	//}
 	return threadNew, err
 }
 
@@ -47,10 +46,10 @@ func (f forumUsecase) GetUsers(slug string, params models.ParseParams) ([]models
 	fmt.Println("users", users)
 	if len(users) == 0 {
 		fmt.Println("no users was found")
-		_, err = f.forumRepository.GetForum(slug)
-		fmt.Println(err)
-		if err.Code == 404 {
-			return users, err
+		_, errr := f.forumRepository.GetForum(slug)
+		fmt.Println(errr)
+		if errr.Code == 404 {
+			return users, errr
 		}
 	}
 
@@ -58,13 +57,14 @@ func (f forumUsecase) GetUsers(slug string, params models.ParseParams) ([]models
 }
 
 func (f forumUsecase) GetThreads(slug string, params models.ParseParams) ([]models.Thread, models.Error) {
-	threads, err := f.forumRepository.GetThreads(slug, params)
-	if err.Code == 404 {
-		_, errr := f.forumRepository.GetForum(slug)
-		if errr.Code == 200 {
-			return threads, errr
-		}
+	forumm, errr := f.forumRepository.GetForum(slug)
+	if errr.Code != 200 {
+		return []models.Thread{}, errr
 	}
 
-	return threads, err
+	threads, _ := f.forumRepository.GetThreads(forumm.Slug, params)
+	fmt.Println("get threads done", errr)
+
+
+	return threads, errr
 }

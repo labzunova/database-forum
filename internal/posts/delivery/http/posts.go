@@ -34,6 +34,8 @@ func (h *Handler) PostGetOne(c echo.Context) error {
 	related = strings.ReplaceAll(related, "]", "")
 	relatedSlice := strings.Split(related, ",")
 
+	fmt.Println("GET POST", id)
+
 	fullPost := posts.FullPost{}
 
 	post, err := h.PostsUcase.GetPost(int(id))

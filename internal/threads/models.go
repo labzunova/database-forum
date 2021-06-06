@@ -28,8 +28,6 @@ type ThreadsRepo interface {
 	GetThreadPostsById(id int, slug string, params models.ParseParamsThread) ([]models.Post, models.Error)
 	VoteThreadBySlug(slug string, vote models.Vote) models.Error
 	VoteThreadById(id int, vote models.Vote) models.Error
-	UpdateVoteThreadBySlug(slug string, vote models.Vote) models.Error
-	UpdateVoteThreadById(id int, vote models.Vote) models.Error
 
 	GetThreadIDBySlug(slug string, id int) (int, models.Error)
 }

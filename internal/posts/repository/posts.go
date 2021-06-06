@@ -55,13 +55,18 @@ func (db *postsRepo) GetPostAuthor(pid int) (models.User, models.Error) {
 
 func (db *postsRepo) GetPostThread(pid int) (models.Thread, models.Error) {
 	thread := models.Thread{}
+	var threadSlug *string
 	err := db.DB.QueryRow(`
 	select t.id, t.title, t.author, t.forum, t.message, t.votes, t.slug, t.created from threads t
 	join posts p on t.id = p.thread
-	where p.id = $1`, pid).Scan(&thread.ID, &thread.Title, &thread.Author, &thread.Forum, &thread.Message, &thread.Votes, &thread.Slug, &thread.Created)
+	where p.id = $1`, pid).Scan(&thread.ID, &thread.Title, &thread.Author, &thread.Forum, &thread.Message, &thread.Votes, &threadSlug, &thread.Created)
 	fmt.Println("get post thread error", err)
 	if err != nil {
 		return thread, models.Error{Code: 500}
+	}
+
+	if threadSlug != nil {
+		thread.Slug = *threadSlug
 	}
 
 	return thread, models.Error{Code: 200}
@@ -75,7 +80,7 @@ func (db *postsRepo) GetPostForum(pid int) (models.Forum, models.Error) {
 	where p.id=$1`, pid).Scan(&forum.Title, &forum.User, &forum.Slug, &forum.Posts, &forum.Threads)
 	fmt.Println("get post forum error", err)
 	if err != nil {
-		return forum, models.Error{Code: 500}
+		return forum, models.Error{Code: 404}
 	}
 
 	return forum, models.Error{Code: 200}
@@ -195,14 +200,18 @@ func (db *postsRepo) CreatePosts(thread models.Thread, posts []models.Post) ([]m
 
 func (db *postsRepo) GetThreadAndForumById(id int) (models.Thread, models.Error) {
 	fmt.Println("      GetThreadAndForumById")
-
+	var threadSlug *string
 	var thread models.Thread
 	err := db.DB.QueryRow("select slug, forum from threads where id=$1", id).
-		Scan(&thread.Slug, &thread.Forum)
+		Scan(&threadSlug, &thread.Forum)
 	thread.ID = id
 	fmt.Println(thread)
 	if err != nil || thread.Forum == "" {
 		return models.Thread{}, models.Error{Code: 404, Message: "Can't find post thread by id:"}
+	}
+
+	if threadSlug != nil {
+		thread.Slug = *threadSlug
 	}
 
 	return thread, models.Error{}
