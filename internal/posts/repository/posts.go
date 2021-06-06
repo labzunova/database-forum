@@ -134,7 +134,6 @@ func (db *postsRepo) CreatePosts(thread models.Thread, posts []models.Post) ([]m
 
 	query += " returning id, created"
 
-	fmt.Println("\n", query, "\n")
 	rows, err := db.DB.Query(query, queryParams...)
 	_, ok := err.(pgx.PgError)
 	if ok {
