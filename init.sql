@@ -153,8 +153,8 @@ execute procedure new_forum_user_added();
 CREATE UNLOGGED TABLE votes (
                                 "user" CITEXT,
                                 FOREIGN KEY ("user") REFERENCES users (nickname),
-                                thread CITEXT,
-                                FOREIGN KEY (thread)  REFERENCES threads(slug),
+                                thread integer,
+                                FOREIGN KEY (thread)  REFERENCES threads(id),
                                 vote INTEGER,
                                 UNIQUE (thread, "user")
 );
@@ -164,7 +164,7 @@ CREATE OR REPLACE FUNCTION new_vote() RETURNS TRIGGER AS
 $new_vote$
 begin
     update threads set votes = votes + new.vote
-    where slug = new.thread;
+    where id = new.thread;
 
     return null;
 end;
@@ -178,7 +178,7 @@ CREATE OR REPLACE FUNCTION change_vote() RETURNS TRIGGER AS
 $change_vote$
 begin
     update threads set votes = votes - old.vote + new.vote
-    where slug = new.thread;
+    where id = new.thread;
 
     return null;
 end;
