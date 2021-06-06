@@ -137,3 +137,31 @@ CREATE TABLE votes (
                        vote INTEGER,
                        UNIQUE (thread, "user")
 );
+
+DROP FUNCTION IF EXISTS new_vote() CASCADE;
+CREATE OR REPLACE FUNCTION new_vote() RETURNS TRIGGER AS
+$new_vote$
+begin
+    update threads set votes = votes + new.vote
+    where slug = new.thread;
+
+    return null;
+end;
+$new_vote$ LANGUAGE plpgsql;
+create trigger new_vote
+    AFTER insert on votes for each row
+execute procedure new_vote();
+
+DROP FUNCTION IF EXISTS change_vote() CASCADE;
+CREATE OR REPLACE FUNCTION change_vote() RETURNS TRIGGER AS
+$change_vote$
+begin
+    update threads set votes = votes - old.vote + new.vote
+    where slug = new.thread;
+
+    return null;
+end;
+$change_vote$ LANGUAGE plpgsql;
+create trigger change_vote
+    AFTER update on votes for each row
+execute procedure change_vote();

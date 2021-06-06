@@ -277,7 +277,10 @@ func (db *threadsRepo) GetThreadPostsBySlug(slug string, params models.ParsePara
 }
 
 func (db *threadsRepo) VoteThreadBySlug(slug string, vote models.Vote) models.Error {
-	_, err := db.DB.Exec(`INSERT INTO votes("user", thread, vote) values ($1,$2,$3)`, vote.Nickname, slug, vote.Voice)
+	_, err := db.DB.Exec(`INSERT INTO votes("user", thread, vote) 
+		values ($1,$2,$3)
+		on conflict ("user",thread) do
+		update set vote=$3`, vote.Nickname, slug, vote.Voice)
 
 	fmt.Println(err)
 	dbErr, ok := err.(pgx.PgError)
@@ -300,11 +303,11 @@ func (db *threadsRepo) VoteThreadBySlug(slug string, vote models.Vote) models.Er
 		}
 	}
 
-	fmt.Println("NEW VOICE ", vote.Voice)
-	_, err = db.DB.Exec("update threads set votes=votes+$1 where slug=$2", vote.Voice, slug)
-	if err != nil {
-		return models.Error{Code: 500}
-	}
+	//fmt.Println("NEW VOICE ", vote.Voice)
+	//_, err = db.DB.Exec("update threads set votes=votes+$1 where slug=$2", vote.Voice, slug)
+	//if err != nil {
+	//	return models.Error{Code: 500}
+	//}
 
 	return models.Error{Code: 200}
 }
@@ -352,7 +355,9 @@ func (db *threadsRepo) UpdateVoteThreadBySlug(slug string, vote models.Vote) mod
 
 func (db *threadsRepo) VoteThreadById(id int, vote models.Vote) models.Error {
 	_, err := db.DB.Exec(`INSERT INTO votes("user", thread, vote) values 
-    	($1,(select slug from threads where id=$2),$3)`, vote.Nickname, id, vote.Voice)
+    	($1,(select slug from threads where id=$2),$3)
+		on conflict ("user",thread) do
+		update set vote=$3`, vote.Nickname, id, vote.Voice)
 	fmt.Println(err)
 	dbErr, ok := err.(pgx.PgError)
 	fmt.Println(dbErr.Code)
@@ -370,11 +375,11 @@ func (db *threadsRepo) VoteThreadById(id int, vote models.Vote) models.Error {
 	}
 	fmt.Println("UPDATING")
 
-	fmt.Println("NEW VOICE ", vote)
-	_, err = db.DB.Exec("update threads set votes=votes+$1 where id=$2", vote.Voice, id)
-	if err != nil {
-		return models.Error{Code: 500}
-	}
+	//fmt.Println("NEW VOICE ", vote)
+	//_, err = db.DB.Exec("update threads set votes=votes+$1 where id=$2", vote.Voice, id)
+	//if err != nil {
+	//	return models.Error{Code: 500}
+	//}
 
 	return models.Error{Code: 200}
 }
