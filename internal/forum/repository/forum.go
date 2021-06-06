@@ -188,7 +188,7 @@ func (f *forumRepo) GetThreads(slug string, params models.ParseParams) ([]models
 		layout := "2006-01-02T15:04:05.000Z"
 		str := params.Since
 		t, _ := time.Parse(layout, str)
-		t = t.Add(time.Hour * 3) // TODO ВРЕМЕННО ДЛЯ КОМПА
+		//t = t.Add(time.Hour * 3) // TODO ВРЕМЕННО ДЛЯ КОМПА
 
 		queryParams = append(queryParams,t)
 	}
@@ -231,7 +231,7 @@ func (f *forumRepo) GetThreads(slug string, params models.ParseParams) ([]models
 			&thread.Forum,
 		)
 
-		thread.Created = thread.Created.Add(-time.Hour * 3) // TODO ВРЕМЕННО ДЛЯ КОМПА
+		//thread.Created = thread.Created.Add(-time.Hour * 3) // TODO ВРЕМЕННО ДЛЯ КОМПА
 
 		if err != nil {
 			return  []models.Thread{}, models.Error{Code: 404}
