@@ -16,6 +16,7 @@ CREATE UNLOGGED TABLE users (
                                 email CITEXT UNIQUE
 );
 CREATE INDEX IF NOT EXISTS users_full ON users (nickname, fullname, about, email);
+--CREATE INDEX IF NOT EXISTS user_nickname on users(nickname); -- NEW
 
 -- FORUMS --
 CREATE UNLOGGED TABLE forums (
@@ -29,6 +30,7 @@ CREATE UNLOGGED TABLE forums (
                                  threads_count INTEGER DEFAULT 0,
                                  posts_count INTEGER DEFAULT 0
 );
+--CREATE INDEX IF NOT EXISTS forums_slug on forums(slug); -- NEW
 
 -- THREADS --
 CREATE UNLOGGED TABLE threads (
@@ -44,6 +46,8 @@ CREATE UNLOGGED TABLE threads (
                                   votes INT DEFAULT 0 NOT NULL,
                                   created TIMESTAMP(3) WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP  NOT NULL
 );
+--CREATE INDEX IF NOT EXISTS thread_id_forum on threads(id, forum); -- NEW
+--CREATE INDEX IF NOT EXISTS thread_slug_forum on threads(slug, forum); -- NEW
 
 CREATE INDEX IF NOT EXISTS thread_forum_and_created ON threads (forum, created); -- для get forum threads
 
@@ -77,9 +81,12 @@ CREATE UNLOGGED TABLE posts (
 );
 
 CREATE INDEX IF NOT EXISTS post_id_and_thread ON posts (thread, id);
-CREATE INDEX IF NOT EXISTS post_path_and_thread ON posts (thread, path); -- запрос для сортировка
-CREATE INDEX IF NOT EXISTS post_path_first_and_thread ON posts (thread, path); -- запрос для сортировка
+CREATE INDEX IF NOT EXISTS post_path_and_thread ON posts (thread, path); -- запрос для сортировки
+CREATE INDEX IF NOT EXISTS post_id_and_thread ON posts (thread, id); -- !запрос для flat сортировки
 CREATE INDEX IF NOT EXISTS post_path_parent_and_thread ON posts (thread, path, parent); -- для parentTree сортирвки
+CREATE INDEX IF NOT EXISTS post_pathFirst_parent_and_thread ON posts (thread, (path[1]), id); -- для parentTree сортирвки
+CREATE INDEX IF NOT EXISTS post_id_path ON posts (id, path); -- !запрос для flat сортировки
+
 
 CREATE OR REPLACE FUNCTION new_post_added() RETURNS TRIGGER AS
 $new_post_added$
