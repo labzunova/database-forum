@@ -2,7 +2,7 @@ CREATE EXTENSION IF NOT EXISTS CITEXT;
 
 DROP TABLE IF EXISTS votes CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
-DROP TABLE IF EXISTS posts;
+DROP TABLE IF EXISTS posts CASCADE;
 DROP TABLE IF EXISTS forums CASCADE;
 DROP TABLE IF EXISTS threads CASCADE;
 DROP TABLE IF EXISTS forum_users CASCADE;
@@ -46,8 +46,10 @@ CREATE UNLOGGED TABLE threads (
                                   votes INT DEFAULT 0 NOT NULL,
                                   created TIMESTAMP(3) WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP  NOT NULL
 );
-CREATE INDEX IF NOT EXISTS thread_slug ON threads USING hash (slug);
+CREATE INDEX IF NOT EXISTS thread_slug ON threads (slug);
+--CREATE INDEX IF NOT EXISTS thread_slug ON threads (lower(slug));
 CREATE INDEX IF NOT EXISTS thread_forum ON threads USING hash (forum);
+CREATE INDEX IF NOT EXISTS thread_created ON threads (created);
 --CREATE INDEX IF NOT EXISTS thread_id_forum on threads(id, forum); -- NEW
 --CREATE INDEX IF NOT EXISTS thread_slug_forum on threads(slug, forum); -- NEW
 
@@ -55,16 +57,43 @@ CREATE INDEX IF NOT EXISTS thread_forum_and_created ON threads (forum, created);
 
 CREATE OR REPLACE FUNCTION new_thread_added() RETURNS TRIGGER AS
 $new_thread_added$
+declare
+    nickAuthor citext;
+    fullnameAuthor text;
+    emailAuthor citext;
+    aboutAuthor text;
 begin
-    update forums set threads_count = threads_count + 1
-    where slug = new.forum;
+    --     update forums set threads_count = threads_count + 1
+--     where slug = new.forum;
+
+    select nickname, fullname, about, email
+    from users where nickname = new.author
+    into nickAuthor, fullnameAuthor, aboutAuthor, emailAuthor;
+
+    insert into forum_users(fullname, about, email, userNickname, forumSlug)
+    values (fullnameAuthor, aboutAuthor, emailAuthor, nickAuthor, new.forum)
+    on conflict do nothing;
 
     return new;
 end;
 $new_thread_added$ LANGUAGE plpgsql;
 create trigger new_thread_added
-    before insert on threads for each row
+    after insert on threads for each row
 execute procedure new_thread_added();
+
+CREATE OR REPLACE FUNCTION inc_threads_count() RETURNS TRIGGER AS
+$inc_threads_count$
+begin
+    update forums set threads_count = threads_count + 1
+    where slug = new.forum;
+
+    return null;
+end;
+$inc_threads_count$ LANGUAGE plpgsql;
+create trigger inc_threads_count
+    after insert on threads for each row
+execute procedure inc_threads_count();
+
 
 -- POSTS --
 CREATE UNLOGGED TABLE posts (
@@ -83,9 +112,10 @@ CREATE UNLOGGED TABLE posts (
 );
 
 CREATE INDEX IF NOT EXISTS post_thread ON posts (thread);
+--CREATE INDEX IF NOT EXISTS post_path ON posts (path);
 CREATE INDEX IF NOT EXISTS post_id_and_thread ON posts (thread, id);
 CREATE INDEX IF NOT EXISTS post_path_and_thread ON posts (thread, path); -- запрос для сортировки
-CREATE INDEX IF NOT EXISTS post_id_and_thread ON posts (thread, id); -- !запрос для flat сортировки
+--CREATE INDEX IF NOT EXISTS post_id_and_thread ON posts (thread, id); -- !запрос для flat сортировки
 CREATE INDEX IF NOT EXISTS post_path_parent_and_thread ON posts (thread, parent, path); -- для parentTree сортирвки
 CREATE INDEX IF NOT EXISTS post_pathFirst_parent_and_thread ON posts (thread, id, (path[1])); -- для parentTree сортирвки
 --CREATE INDEX IF NOT EXISTS post_id_path ON posts (id, path); -- !запрос для flat сортировки
@@ -93,16 +123,42 @@ CREATE INDEX IF NOT EXISTS post_pathFirst_parent_and_thread ON posts (thread, id
 
 CREATE OR REPLACE FUNCTION new_post_added() RETURNS TRIGGER AS
 $new_post_added$
+declare
+    nickAuthor citext;
+    fullnameAuthor text;
+    emailAuthor citext;
+    aboutAuthor text;
 begin
-    update forums set posts_count = posts_count + 1
-    where slug = new.forum;
+    --     update forums set posts_count = posts_count + 1
+--     where slug = new.forum;
+
+    select nickname, fullname, about, email
+    from users where nickname = new.author
+    into nickAuthor, fullnameAuthor, aboutAuthor, emailAuthor;
+
+    insert into forum_users(fullname, about, email, userNickname, forumSlug)
+    values (fullnameAuthor, aboutAuthor, emailAuthor, nickAuthor, new.forum)
+    on conflict do nothing;
 
     return new;
 end;
 $new_post_added$ LANGUAGE plpgsql;
 create trigger new_post_added
-    before insert on posts for each row
+    after insert on posts for each row
 execute procedure new_post_added();
+
+CREATE OR REPLACE FUNCTION inc_posts_count() RETURNS TRIGGER AS
+$inc_posts_count$
+begin
+    update forums set posts_count = posts_count + 1
+    where slug = new.forum;
+
+    return null;
+end;
+$inc_posts_count$ LANGUAGE plpgsql;
+create trigger inc_posts_count
+    after insert on posts for each row
+execute procedure inc_posts_count();
 
 
 CREATE OR REPLACE FUNCTION add_path() RETURNS TRIGGER AS
@@ -132,33 +188,37 @@ execute procedure add_path();
 
 -- FORUM USERS --
 CREATE UNLOGGED TABLE forum_users (
-                                      userNickname CITEXT REFERENCES users (nickname),
+                                      fullname TEXT,
+                                      about TEXT,
+                                      email CITEXT UNIQUE,
+                                      userNickname CITEXT COLLATE "POSIX",
                                       FOREIGN KEY (userNickname) REFERENCES users (nickname),
-                                      forumSlug CITEXT REFERENCES forums (slug), -- изменила из-за GetUsers
+                                      forumSlug CITEXT,
                                       FOREIGN KEY (forumSlug) REFERENCES forums (slug),
+
                                       unique (userNickname, forumSlug)
 );
 CREATE INDEX IF NOT EXISTS forum_users ON forum_users (forumSlug, userNickname);
 
 
-DROP FUNCTION IF EXISTS new_forum_user_added() CASCADE;
-CREATE OR REPLACE FUNCTION new_forum_user_added() RETURNS TRIGGER AS
-$new_forum_user_added$
-begin
-    insert into forum_users (userNickname, forumSlug)
-    values (new.author, new.forum) on conflict do nothing;
-
-    return null;
-end;
-$new_forum_user_added$ LANGUAGE plpgsql;
-drop trigger if exists new_forum_user_added on posts;
-create trigger new_forum_user_added
-    AFTER insert on posts for each row
-execute procedure new_forum_user_added();
-drop trigger if exists new_forum_user_added on threads;
-create trigger new_forum_user_added
-    AFTER insert on threads for each row
-execute procedure new_forum_user_added();
+-- DROP FUNCTION IF EXISTS new_forum_user_added() CASCADE;
+-- CREATE OR REPLACE FUNCTION new_forum_user_added() RETURNS TRIGGER AS
+-- $new_forum_user_added$
+-- begin
+--     insert into forum_users (fullname, about, email, userNickname, forumSlug)
+--     values (new.author, new.forum) on conflict do nothing;
+--
+--     return null;
+-- end;
+-- $new_forum_user_added$ LANGUAGE plpgsql;
+-- drop trigger if exists new_forum_user_added on posts;
+-- create trigger new_forum_user_added
+--     AFTER insert on posts for each row
+-- execute procedure new_forum_user_added();
+-- drop trigger if exists new_forum_user_added on threads;
+-- create trigger new_forum_user_added
+--     AFTER insert on threads for each row
+-- execute procedure new_forum_user_added();
 
 -- VOTES --
 CREATE UNLOGGED TABLE votes (
@@ -169,7 +229,7 @@ CREATE UNLOGGED TABLE votes (
                                 vote INTEGER,
                                 UNIQUE (thread, "user")
 );
-CREATE INDEX IF NOT EXISTS votes ON votes (thread, "user");
+CREATE INDEX IF NOT EXISTS votes ON votes (thread, "user", vote);
 
 DROP FUNCTION IF EXISTS new_vote() CASCADE;
 CREATE OR REPLACE FUNCTION new_vote() RETURNS TRIGGER AS
