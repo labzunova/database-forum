@@ -15,8 +15,8 @@ CREATE UNLOGGED TABLE users (
                                 about TEXT,
                                 email CITEXT UNIQUE
 );
-CREATE INDEX IF NOT EXISTS user_nickname on users using hash(nickname); -- NEW
 CREATE INDEX IF NOT EXISTS users_full ON users (nickname, fullname, about, email);
+CREATE INDEX IF NOT EXISTS user_nickname on users(nickname); -- NEW
 
 -- FORUMS --
 CREATE UNLOGGED TABLE forums (
@@ -48,8 +48,8 @@ CREATE UNLOGGED TABLE threads (
 );
 CREATE INDEX IF NOT EXISTS thread_slug ON threads USING hash (slug);
 CREATE INDEX IF NOT EXISTS thread_forum ON threads USING hash (forum);
---CREATE INDEX IF NOT EXISTS thread_id_forum on threads(id, forum); -- NEW
---CREATE INDEX IF NOT EXISTS thread_slug_forum on threads(slug, forum); -- NEW
+CREATE INDEX IF NOT EXISTS thread_id_forum on threads(id, forum); -- NEW
+CREATE INDEX IF NOT EXISTS thread_slug_forum on threads(slug, forum); -- NEW
 
 CREATE INDEX IF NOT EXISTS thread_forum_and_created ON threads (forum, created); -- для get forum threads
 
@@ -82,12 +82,11 @@ CREATE UNLOGGED TABLE posts (
                                 path INTEGER[] NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS post_thread ON posts (thread);
 CREATE INDEX IF NOT EXISTS post_id_and_thread ON posts (thread, id);
 CREATE INDEX IF NOT EXISTS post_path_and_thread ON posts (thread, path); -- запрос для сортировки
 CREATE INDEX IF NOT EXISTS post_id_and_thread ON posts (thread, id); -- !запрос для flat сортировки
 CREATE INDEX IF NOT EXISTS post_path_parent_and_thread ON posts (thread, parent, path); -- для parentTree сортирвки
-CREATE INDEX IF NOT EXISTS post_pathFirst_parent_and_thread ON posts (thread, id, (path[1])); -- для parentTree сортирвки
+CREATE INDEX IF NOT EXISTS post_pathFirst_parent_and_thread ON posts (thread, (path[1]), id); -- для parentTree сортирвки
 --CREATE INDEX IF NOT EXISTS post_id_path ON posts (id, path); -- !запрос для flat сортировки
 
 
@@ -136,10 +135,9 @@ CREATE UNLOGGED TABLE forum_users (
                                       FOREIGN KEY (userNickname) REFERENCES users (nickname),
                                       forumSlug CITEXT REFERENCES forums (slug), -- изменила из-за GetUsers
                                       FOREIGN KEY (forumSlug) REFERENCES forums (slug),
+
                                       unique (userNickname, forumSlug)
 );
-CREATE INDEX IF NOT EXISTS forum_users ON forum_users (forumSlug, userNickname);
-
 
 DROP FUNCTION IF EXISTS new_forum_user_added() CASCADE;
 CREATE OR REPLACE FUNCTION new_forum_user_added() RETURNS TRIGGER AS

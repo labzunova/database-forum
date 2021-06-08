@@ -25,25 +25,18 @@ func (f forumUsecase) GetForum(id string) (models.Forum, models.Error) {
 }
 
 func (f forumUsecase) CreateThread(slug string, thread models.Thread) (models.Thread, models.Error) {
-	//checkSlug := true
-	//if thread.Slug == "" {
-	//	//thread.Slug = uuid.New().String()
-	//	checkSlug = false
-	//}
 	threadNew, err := f.forumRepository.CreateThread(slug, thread)
 	if err.Code == 409 {
 		return f.forumRepository.GetThreadBySlug(thread.Slug)
 	}
 
-	//if !checkSlug {
-	//	threadNew.Slug = ""
-	//}
 	return threadNew, err
 }
 
 func (f forumUsecase) GetUsers(slug string, params models.ParseParams) ([]models.User, models.Error) {
 	users, err := f.forumRepository.GetUsers(slug, params)
-	fmt.Println("users", users)
+	fmt.Println("       slug", slug)
+	fmt.Println("       users", users)
 	if len(users) == 0 {
 		fmt.Println("no users was found")
 		_, errr := f.forumRepository.GetForum(slug)

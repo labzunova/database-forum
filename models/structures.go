@@ -25,10 +25,10 @@ type Status struct {
 //      - email
 type User struct {
 	ID       int    `json:"id"`
-	About    string `json:"about"`    // Описание пользователя
 	Email    string `json:"email"`    // Почтовый адрес пользователя (уникальное поле)
 	FullName string `json:"fullname"` // Полное имя пользователя
 	Nickname string `json:"nickname"` //Имя пользователя (уникальное поле)
+	About    string `json:"about"`    // Описание пользователя
 	//Данное поле допускает только латиницу, цифры и знак подчеркивания.
 	//Сравнение имени регистронезависимо
 }

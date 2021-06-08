@@ -47,7 +47,6 @@ func (h Handler) ForumGetOne(c echo.Context) error {
 
 	forumResponse, err := h.ForumUcase.GetForum(slug)
 	if err.Code != 200 {
-		//return c.JSON(http.StatusOK, nil) // TODO FOR PERF TESTS ????
 		//err.Message = "Can't find forum with slug: " + slug
 		err.Message = "Can't find forum"
 		return c.JSON(http.StatusNotFound, err)
@@ -89,7 +88,6 @@ func (h Handler) ForumGetUsers(c echo.Context) error {
 
 	users, err := h.ForumUcase.GetUsers(slug, *getUsers)
 	if err.Code == 404 {
-		//return c.JSON(http.StatusOK, nil) // TODO FOR PERF TESTS ????
 		err.Message = "Can't find forum by slug: " + slug
 		return c.JSON(http.StatusNotFound, err)
 	}
@@ -110,7 +108,6 @@ func (h Handler) ForumGetThreads(c echo.Context) error {
 
 	threads, err := h.ForumUcase.GetThreads(slug, *getThreads)
 	if err.Code != 200 {
-		//return c.JSON(http.StatusOK, nil) // TODO FOR PERF TESTS ????
 		err.Message = "Can't find forum by slug: " + slug
 		return c.JSON(http.StatusNotFound, err)
 	}

@@ -111,27 +111,25 @@ func (f *forumRepo) CreateThread(slug string, thread models.Thread) (models.Thre
 func (f *forumRepo) GetUsers(slug string, params models.ParseParams) ([]models.User, models.Error) {
 	var queryParametres []interface{}
 	query := `
-		select u.nickname, u.fullname, u.email, u.about, u.id from
-		users u
-		join forum_users uf on uf.userNickname = u.nickname
-        where uf.forumSlug = $1
+		select userNickname, fullname, email, about from forum_users 
+        where forumSlug = $1 
 	`
 	queryParametres = append(queryParametres, slug)
 
 	if params.Since != "" {
 		fmt.Println("with since", params.Since)
 		if params.Desc {
-			query += " and u.nickname < $2 "
+			query += " and userNickname < $2 "
 		} else {
-			query += " and u.nickname > $2 "
+			query += " and userNickname > $2 "
 		}
 		queryParametres = append(queryParametres, params.Since)
 	}
 
 	if !params.Desc {
-		query += " order by u.nickname "
+		query += " order by userNickname "
 	} else {
-		query += " order by u.nickname DESC "
+		query += " order by userNickname DESC "
 	}
 
 	if params.Limit != 0 {
@@ -146,7 +144,7 @@ func (f *forumRepo) GetUsers(slug string, params models.ParseParams) ([]models.U
 	fmt.Println("query: ", query)
 
 	forumUsers, err := f.DB.Query(query, queryParametres...)
-	fmt.Println("get forum users error:", err)
+	fmt.Println("            get forum users error:", err)
 	if err != nil {
 		return []models.User{}, models.Error{Code: 404}
 	}
@@ -160,9 +158,10 @@ func (f *forumRepo) GetUsers(slug string, params models.ParseParams) ([]models.U
 			&user.FullName,
 			&user.Email,
 			&user.About,
-			&user.ID,
 		)
-		fmt.Println("scan forum user error:", err)
+		fmt.Println("                uABOUT", user.About)
+		fmt.Println(user)
+		fmt.Println("     scan forum user error:", err)
 		if err != nil {
 			return []models.User{}, models.Error{Code: 500}
 		}
