@@ -142,7 +142,7 @@ func (f *forumRepo) GetUsers(slug string, params models.ParseParams) ([]models.U
 	}
 
 	forumUsers, err := f.DB.Query(query, queryParametres...)
-	fmt.Println("get forum users error:", err)
+	fmt.Println("            get forum users error:", err)
 	if err != nil {
 		return []models.User{}, models.Error{Code: 404}
 	}
@@ -156,9 +156,10 @@ func (f *forumRepo) GetUsers(slug string, params models.ParseParams) ([]models.U
 			&user.FullName,
 			&user.Email,
 			&user.About,
-			&user.ID,
 		)
-		fmt.Println("scan forum user error:", err)
+		fmt.Println("                uABOUT", user.About)
+		fmt.Println(user)
+		fmt.Println("     scan forum user error:", err)
 		if err != nil {
 			return []models.User{}, models.Error{Code: 500}
 		}
