@@ -5,10 +5,10 @@ import (
 )
 
 type DBinfo struct {
-	Users int `json:"user"`
-	Forums int `json:"forum"`
+	Users   int `json:"user"`
+	Forums  int `json:"forum"`
 	Threads int `json:"thread"`
-	Posts int `json:"post"`
+	Posts   int `json:"post"`
 }
 
 type ServiceHandler interface {
@@ -25,4 +25,3 @@ type ServiceRepo interface {
 	Clear() error
 	Status() DBinfo
 }
-

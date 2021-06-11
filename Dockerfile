@@ -14,8 +14,8 @@ RUN apt-get -y update && apt-get install -y postgresql-$PGVER
 USER postgres
 
 RUN /etc/init.d/postgresql start &&\
-    psql --command "CREATE USER labzunova WITH SUPERUSER PASSWORD '111111';" &&\
-    createdb -E UTF8 -O labzunova forums &&\
+    psql --command "CREATE USER lbznv WITH SUPERUSER PASSWORD '1111';" &&\
+    createdb -E UTF8 -O lbznv forums &&\
     /etc/init.d/postgresql stop
 
 EXPOSE 5432
@@ -33,4 +33,4 @@ EXPOSE 5000
 
 ENV PGPASSWORD 1111
 
-CMD service postgresql start && psql -h localhost -d forums -U labzunova -p 5432 -a -q -f ./init.sql && ./main
+CMD service postgresql start && psql -h localhost -d forums -U lbznv -p 5432 -a -q -f ./init.sql && ./main

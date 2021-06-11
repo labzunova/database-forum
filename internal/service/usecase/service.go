@@ -20,4 +20,3 @@ func (s serviceUsecase) Clear() error {
 func (s serviceUsecase) Status() service.DBinfo {
 	return s.serviceRepository.Status()
 }
-

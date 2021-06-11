@@ -3,6 +3,7 @@ package usecase
 import (
 	"DBproject/internal/threads"
 	"DBproject/models"
+	"fmt"
 	"strconv"
 )
 
@@ -31,35 +32,53 @@ func (t threadsUsecase) UpdateThread(slugOrId string, thread models.Thread) (mod
 
 func (t threadsUsecase) GetThreadPosts(slugOrId string, params models.ParseParamsThread) ([]models.Post, models.Error) {
 	id := t.SlugOrID(slugOrId)
+	var err models.Error
+	fmt.Println("slugorid:", slugOrId)
+
 	if id != 0 {
-		return t.threadsRepository.GetThreadPostsById(id, params)
+		fmt.Println("id:", id)
+		id, err = t.threadsRepository.GetThreadIDBySlug(slugOrId, id)
+		if err.Code != 200 {
+			err.Message = fmt.Sprintf("Can't find thread by id: %d", id)
+			return nil, err
+		}
+	} else {
+		id, err = t.threadsRepository.GetThreadIDBySlug(slugOrId, 0)
+		fmt.Println("get by slug")
+		if err.Code != 200 {
+			err.Message = "Can't find thread by slug: " + slugOrId
+			return nil, err
+		}
 	}
-	return t.threadsRepository.GetThreadPostsBySlug(slugOrId, params)
+	return t.threadsRepository.GetThreadPostsById(id, slugOrId, params)
 }
 
 func (t threadsUsecase) VoteThread(slugOrId string, vote models.Vote) (models.Thread, models.Error) {
 	id := t.SlugOrID(slugOrId)
+	fmt.Println("slug or id ", slugOrId, id)
 	if id != 0 {
+		fmt.Println("vote by id")
 		err := t.threadsRepository.VoteThreadById(id, vote)
 		if err.Code != 200 {
 			return models.Thread{}, err
 		}
-		return t.threadsRepository.GetThread(slugOrId, 0)
+		return t.threadsRepository.GetThread("", id)
 	}
 
+	fmt.Println("vote by slug")
 	err := t.threadsRepository.VoteThreadBySlug(slugOrId, vote)
 	if err.Code != 200 {
 		return models.Thread{}, err
 	}
 
-	return t.threadsRepository.GetThread("", id)
+	return t.threadsRepository.GetThread(slugOrId, 0)
 }
 
 // extra
 
 func (t threadsUsecase) SlugOrID(slugOrId string) int {
 	id, errID := strconv.Atoi(slugOrId)
-	if errID != nil {
+	if errID == nil {
 		return id
 	}
 

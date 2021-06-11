@@ -3,7 +3,7 @@ package models
 import "time"
 
 type Error struct {
-	Code int `json:"code"`
+	Code    int    `json:"code"`
 	Message string `json:"message"`
 }
 
@@ -24,10 +24,11 @@ type Status struct {
 //      - fullname
 //      - email
 type User struct {
-	About    string `json:"about"`    // Описание пользователя
+	ID       int    `json:"id"`
 	Email    string `json:"email"`    // Почтовый адрес пользователя (уникальное поле)
 	FullName string `json:"fullname"` // Полное имя пользователя
 	Nickname string `json:"nickname"` //Имя пользователя (уникальное поле)
+	About    string `json:"about"`    // Описание пользователя
 	//Данное поле допускает только латиницу, цифры и знак подчеркивания.
 	//Сравнение имени регистронезависимо
 }
@@ -51,14 +52,14 @@ type Forum struct {
 //      - author
 //      - message
 type Thread struct {
-	ID      int       `json:"id"`      // Идентификатор ветки обсуждения.
-	Title   string    `json:"title"`   // Заголовок ветки обсуждения.
 	Author  string    `json:"author"`  // Пользователь, создавший данную тему.
-	Forum   string    `json:"forum"`   // Форум, в котором расположена данная ветка обсуждения.
-	Message string    `json:"message"` // Описание ветки обсуждения.
-	Votes   int       `json:"votes"`   // Кол-во голосов непосредственно за данное сообщение форума.
-	Slug    string    `json:"slug"`    // Человекопонятный URL
 	Created time.Time `json:"created"` // Дата создания ветки на форуме.
+	Forum   string    `json:"forum"`   // Форум, в котором расположена данная ветка обсуждения.
+	ID      int       `json:"id"`      // Идентификатор ветки обсуждения.
+	Message string    `json:"message"` // Описание ветки обсуждения.
+	Title   string    `json:"title"`   // Заголовок ветки обсуждения.
+	Slug    string    `json:"slug"`    // Человекопонятный URL
+	Votes   int       `json:"votes"`   // Кол-во голосов непосредственно за данное сообщение форума.
 }
 
 // Post Сообщение внутри ветки обсуждения на форуме.
@@ -66,14 +67,14 @@ type Thread struct {
 //      - author
 //      - message
 type Post struct { //  Сообщение внутри ветки обсуждения на форуме.
-	ID       int       `json:"id"`       // Идентификатор данного сообщения.
-	Parent   int       `json:"parent"`   // Идентификатор родительского сообщения (0 - корневое сообщение обсуждения).
 	Author   string    `json:"author"`   // Автор, написавший данное сообщение.
-	Message  string    `json:"message"`  // Собственно сообщение форума.
-	IsEdited bool      `json:"isEdited"` // Истина, если данное сообщение было изменено.
-	Forum    string    `json:"forum"`    // Идентификатор форума (slug) данного сообещния.
-	Thread   string    `json:"thread"`   // Идентификатор форума (slug) данного сообещния.
 	Created  time.Time `json:"created"`  // Дата создания сообщения на форуме.
+	Forum    string    `json:"forum"`    // Идентификатор форума (slug) данного сообещния.
+	ID       int       `json:"id"`       // Идентификатор данного сообщения.
+	Message  string    `json:"message"`  // Собственно сообщение форума.
+	Parent   int       `json:"parent"`   // Идентификатор родительского сообщения (0 - корневое сообщение обсуждения).
+	IsEdited bool      `json:"isEdited"` // Истина, если данное сообщение было изменено.
+	Thread   int       `json:"thread"`   // Идентификатор форума (slug) данного сообещния.
 }
 
 // PostUpdate Сообщение для обновления сообщения внутри ветки на форуме. Пустые параметры остаются без изменений.

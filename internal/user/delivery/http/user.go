@@ -38,7 +38,7 @@ func (h *Handler) UserCreate(c echo.Context) error {
 		}
 		return c.JSON(http.StatusConflict, users)
 	}
-fmt.Println(newUser, "createsd")
+	fmt.Println(newUser, "createsd")
 	return c.JSON(http.StatusCreated, newUser)
 }
 
@@ -48,6 +48,7 @@ func (h *Handler) UserGetOne(c echo.Context) error {
 
 	user, err := h.UserUcase.GetByNickname(nickname)
 	if err.Code == 404 {
+		//return c.JSON(http.StatusOK, nil) // TODO FOR PERF TESTS ????
 		err.Message = "Can't find user by nickname: " + nickname
 		return c.JSON(http.StatusNotFound, err)
 	}
