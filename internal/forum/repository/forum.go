@@ -128,7 +128,7 @@ func (f *forumRepo) GetUsers(slug string, params models.ParseParams) ([]models.U
 	}
 
 	if !params.Desc {
-		query += " order by userNickname "
+		query += " order by userNickname asc"
 	} else {
 		query += " order by userNickname DESC "
 	}
