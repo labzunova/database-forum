@@ -220,5 +220,7 @@ create trigger change_vote
     AFTER update on votes for each row
 execute procedure change_vote();
 
-ANALYZE;
-VACUUM ANALYZE;
+-- ANALYZE;
+-- VACUUM ANALYZE;
+VACUUM;
+VACUUM ANALYSE;
