@@ -63,7 +63,6 @@ func (h *Handler) ThreadGetPosts(c echo.Context) error {
 
 	posts, err := h.ThreadsUcase.GetThreadPosts(slugOrId, *getPosts)
 	if err.Code == 404 {
-		//return c.JSON(http.StatusOK, nil) // TODO FOR PERF TESTS ????
 		err.Message = "Can't find forum by slug: " + slugOrId
 		return c.JSON(http.StatusNotFound, err)
 	}
@@ -88,8 +87,6 @@ func (h *Handler) ThreadVote(c echo.Context) error {
 	if err.Code != 200 {
 		return c.JSON(http.StatusInternalServerError, "Error")
 	}
-
-	//thread.Created = thread.Created.Add(-time.Hour * 3) // TODO ВРЕМЕННО ДЛЯ КОМПА
 
 	return c.JSON(http.StatusOK, thread)
 }

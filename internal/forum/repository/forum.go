@@ -96,6 +96,7 @@ func (f *forumRepo) CreateThread(slug string, thread models.Thread) (models.Thre
 	dbErr, _ := errr.(pgx.PgError)
 	if dbErr.Code == pgerrcode.ForeignKeyViolation || dbErr.Code == pgerrcode.NotNullViolation {
 		fmt.Println("404")
+		fmt.Println(errr)
 		return models.Thread{}, models.Error{Code: 404, Message: "Can't find thread forum by slug: " + thread.Slug}
 
 	}
@@ -140,6 +141,8 @@ func (f *forumRepo) GetUsers(slug string, params models.ParseParams) ([]models.U
 		}
 		queryParametres = append(queryParametres, params.Limit)
 	}
+	fmt.Println(query)
+	fmt.Println(queryParametres)
 
 	forumUsers, err := f.DB.Query(query, queryParametres...)
 	fmt.Println("            get forum users error:", err)
@@ -147,18 +150,29 @@ func (f *forumRepo) GetUsers(slug string, params models.ParseParams) ([]models.U
 		return []models.User{}, models.Error{Code: 404}
 	}
 
+	i := 0
+	//var about, fullname *string
 	users := make([]models.User, 0)
 	for forumUsers.Next() {
 		fmt.Println("start scan user")
-		user := new(models.User)
+		user := &models.User{}
 		err = forumUsers.Scan(
 			&user.Nickname,
 			&user.FullName,
 			&user.Email,
 			&user.About,
 		)
-		fmt.Println("                uABOUT", user.About)
-		fmt.Println(user)
+		//if about != nil {
+		//	user.About = *about
+		//}
+		//if fullname != nil {
+		//	user.FullName = *fullname
+		//}
+		fmt.Println(slug, 	"                uABOUT", user.About)
+		fmt.Println("              slug", slug)
+		fmt.Println(i)
+		i++
+		fmt.Println("   user",user)
 		fmt.Println("     scan forum user error:", err)
 		if err != nil {
 			return []models.User{}, models.Error{Code: 500}

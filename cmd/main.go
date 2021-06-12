@@ -18,7 +18,7 @@ import (
 	repository4 "DBproject/internal/threads/repository"
 	usecase3 "DBproject/internal/threads/usecase"
 	"DBproject/internal/user"
-	"DBproject/internal/user/delivery/http"
+	http0 "DBproject/internal/user/delivery/http"
 	"DBproject/internal/user/repository"
 	"DBproject/internal/user/usecase"
 	"fmt"
@@ -82,7 +82,7 @@ func main() {
 
 	userRepo := repository.NewUsersRepo(db)
 	userUcase := usecase.NewUserUsecase(userRepo)
-	userHandler := http.NewUserHandler(userUcase)
+	userHandler := http0.NewUserHandler(userUcase)
 
 	forumRepo := repository2.NewForumRepo(db)
 	forumUcase := usecase5.NewForumUsecase(forumRepo)
