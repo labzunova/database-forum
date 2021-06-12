@@ -112,5 +112,6 @@ func (h Handler) ForumGetThreads(c echo.Context) error {
 		return c.JSON(http.StatusNotFound, err)
 	}
 
+	fmt.Println("ФЛОООООООО")
 	return c.JSON(http.StatusOK, threads)
 }

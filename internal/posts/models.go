@@ -24,7 +24,7 @@ type PostsHandler interface {
 
 type PostsUsecase interface {
 	GetPost(id int) (models.Post, models.Error)
-	GetPostInfo(id int, related []string) (FullPost, models.Error)
+	GetPostInfo(post models.Post, id int, related []string) (FullPost, models.Error)
 
 	UpdatePost(id int, message string) (models.Post, models.Error)
 	CreatePosts(slug string, posts []models.Post) ([]models.Post, models.Error)
@@ -32,9 +32,9 @@ type PostsUsecase interface {
 
 type PostsRepo interface {
 	GetPost(id int) (models.Post, models.Error)
-	GetPostAuthor(pid int) (models.User, models.Error)
-	GetPostThread(pid int) (models.Thread, models.Error)
-	GetPostForum(pid int) (models.Forum, models.Error)
+	GetPostAuthor(nickname string) (models.User, models.Error)
+	GetPostThread(threadId int) (models.Thread, models.Error)
+	GetPostForum(forumSlug string) (models.Forum, models.Error)
 
 	UpdatePost(id int, message string) (models.Post, models.Error)
 	CreatePosts(thread models.Thread, posts []models.Post) ([]models.Post, models.Error)

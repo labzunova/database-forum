@@ -164,7 +164,7 @@ func (db *threadsRepo) GetThreadPostsById(id int, slugOrId string, params models
 	queryParameters = append(queryParameters, id)
 
 	if params.Limit == 0 {
-		params.Limit = 100000
+		params.Limit = 1000000
 	}
 
 	fmt.Println("since:", params.Since, "desc:", params.Desc, "limit:", params.Limit, "sort:", params.Sort)

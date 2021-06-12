@@ -24,9 +24,7 @@ import (
 	"fmt"
 	"github.com/jackc/pgx"
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 	_ "github.com/lib/pq"
-	"net/http"
 )
 
 func router(e *echo.Echo, user user.UserHandler, forum forum.ForumHandler, posts posts.PostsHandler,
@@ -52,12 +50,6 @@ func router(e *echo.Echo, user user.UserHandler, forum forum.ForumHandler, posts
 
 func main() {
 	e := echo.New()
-
-	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"http://127.0.0.1:3000", "http://localhost:3000"},
-		AllowMethods: []string{http.MethodGet, http.MethodPut, http.MethodPost, http.MethodDelete},
-		AllowCredentials: true,
-	}))
 
 	connectionString := "postgres://labzunova:1111@localhost/postgres?sslmode=disable"
 	config, err := pgx.ParseURI(connectionString)
