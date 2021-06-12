@@ -48,7 +48,7 @@ func (h *Handler) PostGetOne(c echo.Context) error {
 
 	if len(related) != 0 {
 		fmt.Println("related exist")
-		fullPost, err = h.PostsUcase.GetPostInfo(int(id), relatedSlice)
+		fullPost, err = h.PostsUcase.GetPostInfo(post, int(id), relatedSlice)
 		fmt.Println("get post info error(handler)", err)
 		if err.Code != 200 {
 			return c.JSON(http.StatusInternalServerError, err.Code)

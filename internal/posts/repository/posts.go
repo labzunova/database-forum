@@ -39,12 +39,11 @@ func (db *postsRepo) GetPost(id int) (models.Post, models.Error) {
 	return post, models.Error{Code: 200}
 }
 
-func (db *postsRepo) GetPostAuthor(pid int) (models.User, models.Error) {
+func (db *postsRepo) GetPostAuthor(nickname string) (models.User, models.Error) {
 	author := models.User{}
 	err := db.DB.QueryRow(`
 	select nickname, fullname, about, email from users
-	inner join posts p on users.nickname = p.author
-	where p.id = $1`, pid).Scan(&author.Nickname, &author.FullName, &author.About, &author.Email)
+	where nickname=$1`, nickname).Scan(&author.Nickname, &author.FullName, &author.About, &author.Email)
 	fmt.Println("get post author error", err)
 	if err != nil {
 		return author, models.Error{Code: 500}
@@ -53,13 +52,12 @@ func (db *postsRepo) GetPostAuthor(pid int) (models.User, models.Error) {
 	return author, models.Error{Code: 200}
 }
 
-func (db *postsRepo) GetPostThread(pid int) (models.Thread, models.Error) {
+func (db *postsRepo) GetPostThread(threadId int) (models.Thread, models.Error) {
 	thread := models.Thread{}
 	var threadSlug *string
 	err := db.DB.QueryRow(`
-	select t.id, t.title, t.author, t.forum, t.message, t.votes, t.slug, t.created from threads t
-	join posts p on t.id = p.thread
-	where p.id = $1`, pid).Scan(&thread.ID, &thread.Title, &thread.Author, &thread.Forum, &thread.Message, &thread.Votes, &threadSlug, &thread.Created)
+	select id, title, author, forum, message, votes, slug, created from threads	
+	where id=$1`, threadId).Scan(&thread.ID, &thread.Title, &thread.Author, &thread.Forum, &thread.Message, &thread.Votes, &threadSlug, &thread.Created)
 	fmt.Println("get post thread error", err)
 	if err != nil {
 		return thread, models.Error{Code: 500}
@@ -72,12 +70,11 @@ func (db *postsRepo) GetPostThread(pid int) (models.Thread, models.Error) {
 	return thread, models.Error{Code: 200}
 }
 
-func (db *postsRepo) GetPostForum(pid int) (models.Forum, models.Error) {
+func (db *postsRepo) GetPostForum(forumSlug string) (models.Forum, models.Error) {
 	forum := models.Forum{}
 	err := db.DB.QueryRow(`
 	select f.title, f.user, f.slug, f.posts_count, f.threads_count from forums f
-	join posts p on f.slug = p.forum
-	where p.id=$1`, pid).Scan(&forum.Title, &forum.User, &forum.Slug, &forum.Posts, &forum.Threads)
+	where slug=$1`, forumSlug).Scan(&forum.Title, &forum.User, &forum.Slug, &forum.Posts, &forum.Threads)
 	fmt.Println("get post forum error", err)
 	if err != nil {
 		return forum, models.Error{Code: 404}
