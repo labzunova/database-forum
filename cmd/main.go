@@ -51,8 +51,8 @@ func router(e *echo.Echo, user user.UserHandler, forum forum.ForumHandler, posts
 func main() {
 	e := echo.New()
 
-	// connectionString := "postgres://lbznv:1111@localhost/forums?sslmode=disable"
-	connectionString := "postgres://labzunova:1111@localhost/postgres?sslmode=disable"
+	connectionString := "postgres://lbznv:1111@localhost/forums?sslmode=disable"
+	//connectionString := "postgres://labzunova:1111@localhost/postgres?sslmode=disable"
 	config, err := pgx.ParseURI(connectionString)
 	if err != nil {
 		fmt.Println(err)
