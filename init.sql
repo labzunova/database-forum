@@ -238,8 +238,7 @@ DROP TABLE IF EXISTS forum_users CASCADE;
 
 -- USERS --
 CREATE UNLOGGED TABLE users (
-                                id SERIAL NOT NULL PRIMARY KEY ,
-                                nickname CITEXT COLLATE ucs_basic NOT NULL UNIQUE,
+                                nickname CITEXT COLLATE ucs_basic primary key NOT NULL UNIQUE,
                                 fullname TEXT,
                                 about TEXT,
                                 email CITEXT UNIQUE
@@ -247,21 +246,20 @@ CREATE UNLOGGED TABLE users (
 CREATE INDEX IF NOT EXISTS users_full_but_id ON users (nickname, fullname, about, email); -- GetPostAuthor
 --CREATE INDEX IF NOT EXISTS users_nick_id ON users (nickname, id); -- get id ny nick
 -- --CREATE INDEX IF NOT EXISTS user_nickname on users using hash(nickname); -- NEW
-CREATE INDEX IF NOT EXISTS user_nickname on users using hash(nickname); -- NEW
+-- CREATE INDEX IF NOT EXISTS user_nickname on users using hash(nickname); -- NEW
 
 -- FORUMS --
 CREATE UNLOGGED TABLE forums (
-                                 id SERIAL NOT NULL PRIMARY KEY,
                                  title TEXT NOT NULL,
     -- "user" CITEXT REFERENCES users(nickname) ON DELETE CASCADE NOT NULL,
                                  "user" CITEXT NOT NULL,
                                  FOREIGN KEY ("user") REFERENCES Users (nickname),
-                                 slug CITEXT UNIQUE NOT NULL,
+                                 slug CITEXT primary key UNIQUE NOT NULL,
                                  created TIMESTAMP(3) WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
                                  threads_count INTEGER DEFAULT 0,
                                  posts_count INTEGER DEFAULT 0
 );
-CREATE INDEX IF NOT EXISTS forums_slug on forums using hash (slug); -- NEW
+-- CREATE INDEX IF NOT EXISTS forums_slug on forums using hash (slug); -- NEW
 
 -- THREADS --
 CREATE UNLOGGED TABLE threads (
