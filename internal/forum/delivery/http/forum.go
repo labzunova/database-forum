@@ -1,10 +1,12 @@
 package http
 
 import (
+	"DBproject/helpers"
 	"DBproject/internal/forum"
 	"DBproject/models"
+	"encoding/json"
 	"fmt"
-	"github.com/labstack/echo/v4"
+	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
 )
@@ -21,97 +23,125 @@ func NewForumHandler(forumUcase forum.ForumUsecase) forum.ForumHandler {
 }
 
 // ForumCreate Создание нового форума.
-func (h Handler) ForumCreate(c echo.Context) error {
+func (h Handler) ForumCreate(w http.ResponseWriter, r *http.Request) {
 	newForum := new(models.Forum)
-	err := c.Bind(newForum)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, "")
-	}
+	json.NewDecoder(r.Body).Decode(&newForum)
 
 	forum, errr := h.ForumUcase.CreateNewForum(*newForum)
 	switch errr.Code {
 	case 404:
 		errr.Message = "Can't find user with nickname: " + newForum.User
-		return c.JSON(http.StatusNotFound, errr)
+		helpers.CreateResponse(w, http.StatusNotFound, errr)
+		return
 	case 409:
 		forumOld, _ := h.ForumUcase.GetForum(newForum.Slug)
-		return c.JSON(http.StatusConflict, forumOld)
+		helpers.CreateResponse(w, http.StatusConflict,forumOld)
+		return
 	}
 
-	return c.JSON(http.StatusCreated, forum)
+	helpers.CreateResponse(w, http.StatusCreated, forum)
+	return
 }
 
 // ForumGetOne Получение информации о форуме по его идентификаторе
-func (h Handler) ForumGetOne(c echo.Context) error {
-	slug := c.Param("slug")
+func (h Handler) ForumGetOne(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	slug := params["slug"]
 
 	forumResponse, err := h.ForumUcase.GetForum(slug)
 	if err.Code != 200 {
 		//err.Message = "Can't find forum with slug: " + slug
 		err.Message = "Can't find forum"
-		return c.JSON(http.StatusNotFound, err)
+		helpers.CreateResponse(w, http.StatusNotFound, err)
+		return
 	}
 
-	return c.JSON(http.StatusOK, forumResponse)
+
+	helpers.CreateResponse(w, http.StatusOK, forumResponse)
+	return
 }
 
 // ThreadCreate Добавление новой ветки обсуждения на форум
-func (h Handler) ThreadCreate(c echo.Context) error {
-	slug := c.Param("slug")
+func (h Handler) ThreadCreate(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	slug := params["slug"]
 	newThread := new(models.Thread)
-	if err := c.Bind(newThread); err != nil {
-		return err
-	}
+	json.NewDecoder(r.Body).Decode(&newThread)
+
 
 	thread, err := h.ForumUcase.CreateThread(slug, *newThread)
 
 	switch err.Code {
 	case 404:
-		return c.JSON(http.StatusNotFound, err)
+		helpers.CreateResponse(w, http.StatusNotFound, err)
+		return
 	case 409:
-		return c.JSON(http.StatusConflict, thread)
+		helpers.CreateResponse(w, http.StatusConflict, thread)
+		return
 	}
 
-	return c.JSON(http.StatusCreated, thread)
+	helpers.CreateResponse(w, http.StatusCreated, thread)
+	return
 }
 
 // ForumGetUsers Получение списка пользователей, у которых есть пост или ветка обсуждения в данном форуме.
 // Пользователи выводятся отсортированные по nickname в порядке возрастания.
 // Порядок сотрировки должен соответсвовать побайтовому сравнение в нижнем регистре.
-func (h Handler) ForumGetUsers(c echo.Context) error {
-	slug := c.Param("slug")
+func (h Handler) ForumGetUsers(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	slug := params["slug"]
 	getUsers := new(models.ParseParams)
 
-	getUsers.Limit, _ = strconv.Atoi(c.QueryParam("limit"))
-	getUsers.Since = c.QueryParam("since")
-	getUsers.Desc, _ = strconv.ParseBool(c.QueryParam("desc"))
+	var errParse error
+	getUsers.Limit, errParse = strconv.Atoi(r.URL.Query().Get("limit"))
+	if errParse != nil {
+		getUsers.Limit = 100000
+	}
+	getUsers.Since = r.URL.Query().Get("since")
+	getUsers.Desc, errParse = strconv.ParseBool(r.URL.Query().Get("desc"))
+	if errParse != nil {
+		getUsers.Desc = false
+	}
 
 	users, err := h.ForumUcase.GetUsers(slug, *getUsers)
 	if err.Code == 404 {
 		err.Message = "Can't find forum by slug: " + slug
-		return c.JSON(http.StatusNotFound, err)
+		helpers.CreateResponse(w, http.StatusNotFound, err)
+		return
 	}
 
-	return c.JSON(http.StatusOK, users)
+	helpers.CreateResponse(w, http.StatusOK, users)
+	return
 }
 
 // ForumGetThreads Получение списка ветвей обсужления данного форума.
 // Ветви обсуждения выводятся отсортированные по дате создания.
-func (h Handler) ForumGetThreads(c echo.Context) error {
-	slug := c.Param("slug")
+func (h Handler) ForumGetThreads(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	slug := params["slug"]
 	getThreads := new(models.ParseParams)
 
-	getThreads.Limit, _ = strconv.Atoi(c.QueryParam("limit"))
-	getThreads.Since = c.QueryParam("since")
-	getThreads.Desc, _ = strconv.ParseBool(c.QueryParam("desc"))
+
+	var errParse error
+	getThreads.Limit, errParse = strconv.Atoi(r.URL.Query().Get("limit"))
+	if errParse != nil {
+		getThreads.Limit = 100000
+	}
+	getThreads.Since = r.URL.Query().Get("since")
+	getThreads.Desc, errParse = strconv.ParseBool(r.URL.Query().Get("desc"))
+	if errParse != nil {
+		getThreads.Desc = false
+	}
+
 	fmt.Println(getThreads)
 
 	threads, err := h.ForumUcase.GetThreads(slug, *getThreads)
 	if err.Code != 200 {
 		err.Message = "Can't find forum by slug: " + slug
-		return c.JSON(http.StatusNotFound, err)
-	}
+		helpers.CreateResponse(w, http.StatusNotFound, err)
+		return	}
 
 	fmt.Println("ФЛОООООООО")
-	return c.JSON(http.StatusOK, threads)
+	helpers.CreateResponse(w, http.StatusOK, threads)
+	return
 }

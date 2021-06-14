@@ -2,14 +2,14 @@ package threads
 
 import (
 	"DBproject/models"
-	"github.com/labstack/echo/v4"
+	"net/http"
 )
 
 type ThreadsHandler interface {
-	ThreadGetOne(c echo.Context) error
-	ThreadUpdate(c echo.Context) error
-	ThreadGetPosts(c echo.Context) error
-	ThreadVote(c echo.Context) error
+	ThreadGetOne(w http.ResponseWriter, r *http.Request)
+	ThreadUpdate(w http.ResponseWriter, r *http.Request)
+	ThreadGetPosts(w http.ResponseWriter, r *http.Request)
+	ThreadVote(w http.ResponseWriter, r *http.Request)
 }
 
 type ThreadsUsecase interface {

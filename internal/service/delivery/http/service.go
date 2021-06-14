@@ -1,8 +1,8 @@
 package http
 
 import (
+	"DBproject/helpers"
 	"DBproject/internal/service"
-	"github.com/labstack/echo/v4"
 	"net/http"
 )
 
@@ -18,13 +18,15 @@ func NewServiceHandler(serviceUcase service.ServiceUsecase) service.ServiceHandl
 }
 
 // Clear Безвозвратное удаление всей пользовательской информации из базы данных.
-func (h *Handler) Clear(c echo.Context) error {
+func (h *Handler) Clear(w http.ResponseWriter, r *http.Request) {
 	err := h.ServiceUcase.Clear()
-	return c.JSON(http.StatusOK, err)
+	helpers.CreateResponse(w, http.StatusOK, err)
+	return
 }
 
 // Status Получение инфомарции о базе данных.
-func (h *Handler) Status(c echo.Context) error {
+func (h *Handler) Status(w http.ResponseWriter, r *http.Request)  {
 	status := h.ServiceUcase.Status()
-	return c.JSON(http.StatusOK, status)
+	helpers.CreateResponse(w, http.StatusOK, status)
+	return
 }

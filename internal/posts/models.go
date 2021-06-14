@@ -2,7 +2,7 @@ package posts
 
 import (
 	"DBproject/models"
-	"github.com/labstack/echo/v4"
+	"net/http"
 )
 
 type UpdateMessage struct {
@@ -17,9 +17,9 @@ type FullPost struct {
 }
 
 type PostsHandler interface {
-	PostGetOne(c echo.Context) error
-	PostUpdate(c echo.Context) error
-	PostsCreate(c echo.Context) error
+	PostGetOne(w http.ResponseWriter, r *http.Request)
+	PostUpdate(w http.ResponseWriter, r *http.Request)
+	PostsCreate(w http.ResponseWriter, r *http.Request)
 }
 
 type PostsUsecase interface {

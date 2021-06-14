@@ -1,7 +1,7 @@
 package service
 
 import (
-	"github.com/labstack/echo/v4"
+	"net/http"
 )
 
 type DBinfo struct {
@@ -12,8 +12,8 @@ type DBinfo struct {
 }
 
 type ServiceHandler interface {
-	Clear(c echo.Context) error
-	Status(c echo.Context) error
+	Clear(w http.ResponseWriter, r *http.Request)
+	Status(w http.ResponseWriter, r *http.Request)
 }
 
 type ServiceUsecase interface {

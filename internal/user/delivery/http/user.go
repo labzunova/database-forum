@@ -1,10 +1,12 @@
 package http
 
 import (
+	"DBproject/helpers"
 	"DBproject/internal/user"
 	"DBproject/models"
+	"encoding/json"
 	"fmt"
-	"github.com/labstack/echo/v4"
+	"github.com/gorilla/mux"
 	"net/http"
 )
 
@@ -20,12 +22,14 @@ func NewUserHandler(userUcase user.UserUsecase) user.UserHandler {
 }
 
 // UserCreate Создание нового пользователя в базе данных.
-func (h *Handler) UserCreate(c echo.Context) error {
-	nickname := c.Param("nickname")
+func (h *Handler) UserCreate(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	nickname := params["nickname"]
+
 	newUser := new(models.User)
-	if err := c.Bind(newUser); err != nil {
-		return err
-	}
+	json.NewDecoder(r.Body).Decode(&newUser)
+	fmt.Println(newUser)
+
 	newUser.Nickname = nickname
 
 	err := h.UserUcase.Create(*newUser)
@@ -34,35 +38,41 @@ func (h *Handler) UserCreate(c echo.Context) error {
 	if err.Code == 409 {
 		users, errr := h.UserUcase.GetExistingUsers(newUser.Nickname, newUser.Email)
 		if errr.Code != 200 {
-			return c.JSON(http.StatusInternalServerError, "error")
+			helpers.CreateResponse(w, http.StatusInternalServerError, "error")
+			return
 		}
-		return c.JSON(http.StatusConflict, users)
+		helpers.CreateResponse(w, http.StatusConflict, users)
+		return
 	}
 	fmt.Println(newUser, "createsd")
-	return c.JSON(http.StatusCreated, newUser)
+
+	helpers.CreateResponse(w, http.StatusCreated, newUser)
+	return
 }
 
 // UserGetOne Получение информации о пользователе форума по его имени.
-func (h *Handler) UserGetOne(c echo.Context) error {
-	nickname := c.Param("nickname")
+func (h *Handler) UserGetOne(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	nickname := params["nickname"]
 
 	user, err := h.UserUcase.GetByNickname(nickname)
 	if err.Code == 404 {
-		//return c.JSON(http.StatusOK, nil) // TODO FOR PERF TESTS ????
 		err.Message = "Can't find user by nickname: " + nickname
-		return c.JSON(http.StatusNotFound, err)
+		helpers.CreateResponse(w, http.StatusNotFound, err)
+		return
 	}
 
-	return c.JSON(http.StatusOK, user)
+	helpers.CreateResponse(w, http.StatusOK, user)
+	return
 }
 
 // UserUpdate Изменение информации в профиле пользователя.
-func (h *Handler) UserUpdate(c echo.Context) error {
-	nickname := c.Param("nickname")
+func (h *Handler) UserUpdate(w http.ResponseWriter, r *http.Request)  {
+	params := mux.Vars(r)
+	nickname := params["nickname"]
 	newUser := new(models.User)
-	if err := c.Bind(newUser); err != nil {
-		return err
-	}
+	json.NewDecoder(r.Body).Decode(&newUser)
+
 	newUser.Nickname = nickname
 
 	user, err := h.UserUcase.Update(*newUser)
@@ -70,12 +80,15 @@ func (h *Handler) UserUpdate(c echo.Context) error {
 	switch err.Code {
 	case 404:
 		err.Message = "Can't find user by nickname: " + nickname
-		return c.JSON(http.StatusNotFound, err)
-	case 409:
+		helpers.CreateResponse(w, http.StatusNotFound, err)
+		return
+		case 409:
 		users, errr := h.UserUcase.GetExistingUsers(nickname, newUser.Email)
 		errr.Message = "This email is already registered by user: " + users[0].Nickname
-		return c.JSON(http.StatusConflict, errr)
+			helpers.CreateResponse(w, http.StatusConflict, errr)
+			return
 	}
 
-	return c.JSON(http.StatusOK, user)
+	helpers.CreateResponse(w, http.StatusOK, user)
+	return
 }
