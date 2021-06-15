@@ -57,7 +57,7 @@ func (db *usersRepo) UpdateUser(profile models.User) (models.User, models.Error)
 		update users set 
 		fullname=coalesce(nullif($1, ''), fullname),
 		about=coalesce(nullif($2, ''), about),
-		email=coalesce(nullif($3, ''), email),
+		email=coalesce(nullif($3, ''), email)
 		where nickname=$4
 		returning fullname, about, email`, profile.FullName, profile.About, profile.Email, profile.Nickname).
 		Scan(&profile.FullName, &profile.About, &profile.Email)
@@ -68,6 +68,7 @@ func (db *usersRepo) UpdateUser(profile models.User) (models.User, models.Error)
 	//if ok && dbError.Code == pgerrcode.UniqueViolation {
 	//	return models.User{}, models.Error{Code: 409}
 	//}
+	fmt.Println(err)
 	if err != nil {
 		return models.User{}, models.Error{Code: 409}
 	}
