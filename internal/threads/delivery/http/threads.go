@@ -1,10 +1,12 @@
 package http
 
 import (
+	"DBproject/helpers"
 	"DBproject/internal/threads"
 	"DBproject/models"
+	"encoding/json"
 	"fmt"
-	"github.com/labstack/echo/v4"
+	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
 )
@@ -21,72 +23,94 @@ func NewThreadsHandler(threadsUcase threads.ThreadsUsecase) threads.ThreadsHandl
 }
 
 // ThreadGetOne Получение информации о ветке обсуждения по его имени.
-func (h *Handler) ThreadGetOne(c echo.Context) error {
-	slug := c.Param("slug_or_id")
+func (h *Handler) ThreadGetOne(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	slug := params["slug_or_id"]
 
 	thread, err := h.ThreadsUcase.GetThread(slug)
 	if err.Code == 404 {
-		//return c.JSON(http.StatusOK, nil) // TODO FOR PERF TESTS ????
-		return c.JSON(http.StatusNotFound, err)
+		helpers.CreateResponse(w, http.StatusNotFound, err)
+		return
 	}
 
-	return c.JSON(http.StatusOK, thread)
+	helpers.CreateResponse(w, http.StatusOK, thread)
+	return
 }
 
 // ThreadUpdate Обновление ветки обсуждения на форуме.
-func (h *Handler) ThreadUpdate(c echo.Context) error {
-	slugOrId := c.Param("slug_or_id")
+func (h *Handler) ThreadUpdate(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	slugOrId := params["slug_or_id"]
+
 	newThread := new(models.Thread)
-	if err := c.Bind(newThread); err != nil {
-		return err
-	}
+	json.NewDecoder(r.Body).Decode(&newThread)
+
 
 	thread, err := h.ThreadsUcase.UpdateThread(slugOrId, *newThread)
 	if err.Code == 404 {
-		return c.JSON(http.StatusNotFound, err)
+		helpers.CreateResponse(w, http.StatusNotFound, err)
+		return
 	}
 
-	return c.JSON(http.StatusOK, thread)
+	helpers.CreateResponse(w, http.StatusOK, thread)
+	return
 }
 
 // ThreadGetPosts Получение списка сообщений в данной ветке форуме.
 // Сообщения выводятся отсортированные по дате создания.
-func (h *Handler) ThreadGetPosts(c echo.Context) error {
-	fmt.Println("GET THREADS")
-	slugOrId := c.Param("slug_or_id")
+func (h *Handler) ThreadGetPosts(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	slugOrId := params["slug_or_id"]
 	getPosts := new(models.ParseParamsThread)
 
-	getPosts.Limit, _ = strconv.Atoi(c.QueryParam("limit"))
-	getPosts.Since, _ = strconv.Atoi(c.QueryParam("since"))
-	getPosts.Sort = c.QueryParam("sort")
-	getPosts.Desc, _ = strconv.ParseBool(c.QueryParam("desc"))
+	var errParse error
+	getPosts.Limit, errParse = strconv.Atoi(r.URL.Query().Get("limit"))
+	if errParse != nil {
+		getPosts.Limit = 100000
+	}
+
+	getPosts.Since, errParse = strconv.Atoi(r.URL.Query().Get("since"))
+	if errParse != nil {
+		getPosts.Since = 0
+	}
+
+	getPosts.Sort = r.URL.Query().Get("sort")
+	getPosts.Desc, errParse = strconv.ParseBool(r.URL.Query().Get("desc"))
+	if errParse != nil {
+		getPosts.Desc = false
+	}
 
 	posts, err := h.ThreadsUcase.GetThreadPosts(slugOrId, *getPosts)
 	if err.Code == 404 {
 		err.Message = "Can't find forum by slug: " + slugOrId
-		return c.JSON(http.StatusNotFound, err)
+		helpers.CreateResponse(w, http.StatusNotFound, err)
+		return
 	}
 
-	return c.JSON(http.StatusOK, posts)
+	helpers.CreateResponse(w, http.StatusOK, posts)
+	return
 }
 
 // ThreadVote Изменение голоса за ветвь обсуждения.
 // Один пользователь учитывается только один раз и может изменить своё мнение.
-func (h *Handler) ThreadVote(c echo.Context) error {
+func (h *Handler) ThreadVote(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("VOTE handler")
 	newVote := new(models.Vote)
-	if err := c.Bind(newVote); err != nil {
-		return err
-	}
-	slug := c.Param("slug_or_id")
+	json.NewDecoder(r.Body).Decode(&newVote)
+
+	params := mux.Vars(r)
+	slug := params["slug_or_id"]
 
 	thread, err := h.ThreadsUcase.VoteThread(slug, *newVote)
 	if err.Code == 404 {
-		return c.JSON(http.StatusNotFound, err)
+		helpers.CreateResponse(w, http.StatusNotFound, err)
+		return
 	}
 	if err.Code != 200 {
-		return c.JSON(http.StatusInternalServerError, "Error")
+		helpers.CreateResponse(w, http.StatusInternalServerError, "Error")
+		return
 	}
 
-	return c.JSON(http.StatusOK, thread)
+	helpers.CreateResponse(w, http.StatusOK, thread)
+	return
 }

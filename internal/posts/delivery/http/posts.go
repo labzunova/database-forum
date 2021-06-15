@@ -1,11 +1,12 @@
 package http
 
 import (
+	"DBproject/helpers"
 	"DBproject/internal/posts"
 	"DBproject/models"
 	"encoding/json"
 	"fmt"
-	"github.com/labstack/echo/v4"
+	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
 	"strings"
@@ -23,17 +24,13 @@ func NewPostsHandler(postsUcase posts.PostsUsecase) posts.PostsHandler {
 	return handler
 }
 
-type relatedForPost struct {
-}
-
 // PostGetOne Получение информации о ветке обсуждения по его имени.
-func (h *Handler) PostGetOne(c echo.Context) error {
-	id, _ := strconv.ParseInt(c.Param("id"), 0, 64)
-	related := c.QueryParam("related")
-	related = strings.ReplaceAll(related, "[", "")
-	related = strings.ReplaceAll(related, "]", "")
-	relatedSlice := strings.Split(related, ",")
-
+func (h *Handler) PostGetOne(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	id, _ := strconv.ParseInt(params["id"], 0, 64)
+	var related []string
+	related = strings.Split(r.URL.Query().Get("related"), ",")
+fmt.Println(related)
 	fmt.Println("GET POST", id)
 
 	fullPost := posts.FullPost{}
@@ -41,17 +38,18 @@ func (h *Handler) PostGetOne(c echo.Context) error {
 	post, err := h.PostsUcase.GetPost(int(id))
 	fmt.Println("get post error(handler)", err)
 	if err.Code == 404 {
-		//return c.JSON(http.StatusOK, nil) // TODO FOR PERF TESTS ????
 		err.Message = fmt.Sprintf("Can't find post with id: %d", id)
-		return c.JSON(http.StatusNotFound, err)
+		helpers.CreateResponse(w, http.StatusNotFound, err)
+		return
 	}
 
 	if len(related) != 0 {
 		fmt.Println("related exist")
-		fullPost, err = h.PostsUcase.GetPostInfo(post, int(id), relatedSlice)
+		fullPost, err = h.PostsUcase.GetPostInfo(post, int(id), related)
 		fmt.Println("get post info error(handler)", err)
 		if err.Code != 200 {
-			return c.JSON(http.StatusInternalServerError, err.Code)
+			helpers.CreateResponse(w, http.StatusInternalServerError, err.Code)
+			return
 		}
 	}
 
@@ -59,49 +57,59 @@ func (h *Handler) PostGetOne(c echo.Context) error {
 	fmt.Println("done")
 	fmt.Println("post", fullPost)
 
-	return c.JSON(http.StatusOK, fullPost)
+
+	helpers.CreateResponse(w, http.StatusOK, fullPost)
+	return
 }
 
 // PostUpdate Изменение сообщения на форуме.
 // Если сообщение поменяло текст, то оно должно получить отметку `isEdited`.
-func (h *Handler) PostUpdate(c echo.Context) error {
-	id, _ := strconv.ParseInt(c.Param("id"), 0, 64)
+func (h *Handler) PostUpdate(w http.ResponseWriter, r *http.Request){
+	params := mux.Vars(r)
+	id, _ := strconv.ParseInt(params["id"], 0, 64)
 	newMessage := new(posts.UpdateMessage)
-	if err := c.Bind(newMessage); err != nil {
-		return err
-	}
+	json.NewDecoder(r.Body).Decode(&newMessage)
 
 	post, err := h.PostsUcase.UpdatePost(int(id), newMessage.Message)
 	if err.Code == 404 {
-		return c.JSON(http.StatusNotFound, err)
+		helpers.CreateResponse(w, http.StatusNotFound, err)
+		return
 	}
 
-	return c.JSON(http.StatusOK, post)
+	helpers.CreateResponse(w, http.StatusOK, post)
+	return
 }
 
 // PostsCreate Добавление новых постов в ветку обсуждения на форум.
 // Все посты, созданные в рамках одного вызова данного метода должны иметь одинаковую дату создания (Post.Created).
-func (h *Handler) PostsCreate(c echo.Context) error {
-	slug := c.Param("slug_or_id")
+func (h *Handler) PostsCreate(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	slug := params["slug_or_id"]
+
 	newPosts := make([]models.Post, 0)
-	err := json.NewDecoder(c.Request().Body).Decode(&newPosts)
+	err := json.NewDecoder(r.Body).Decode(&newPosts)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err)
+		helpers.CreateResponse(w, http.StatusBadRequest, err)
+		return
 	}
 
 	posts, errr := h.PostsUcase.CreatePosts(slug, newPosts)
 	switch errr.Code {
 	case 404:
 		fmt.Println("not found")
-		return c.JSON(http.StatusNotFound, errr)
+		helpers.CreateResponse(w, http.StatusNotFound, err)
+		return
 	case 409:
 		errr.Message = "Parent post was created in another thread"
-		return c.JSON(http.StatusConflict, errr)
+		helpers.CreateResponse(w, http.StatusConflict, errr)
+		return
 	}
 
 	if len(newPosts) == 0 {
-		return c.JSON(http.StatusCreated, newPosts)
+		helpers.CreateResponse(w, http.StatusCreated, newPosts)
+		return
 	}
 
-	return c.JSON(http.StatusCreated, posts)
+	helpers.CreateResponse(w, http.StatusCreated, posts)
+	return
 }

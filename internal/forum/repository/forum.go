@@ -59,8 +59,8 @@ func (f *forumRepo) CreateNewForum(forum models.Forum) (models.Forum, models.Err
 func (f *forumRepo) GetForum(slug string) (models.Forum, models.Error) {
 	fmt.Println("       get forum", slug)
 	forumm := new(models.Forum)
-	err := f.DB.QueryRow(`select title, "user", slug, posts_count, threads_count from forums where slug = $1`,
-		slug).Scan(&forumm.Title, &forumm.User, &forumm.Slug, &forumm.Posts, &forumm.Threads)
+	err := f.DB.QueryRow(`select slug, title, "user", posts_count, threads_count from forums where slug = $1`,
+		slug).Scan(&forumm.Slug, &forumm.Title, &forumm.User, &forumm.Posts, &forumm.Threads)
 	fmt.Println("forum", forumm)
 	fmt.Println("err", err)
 

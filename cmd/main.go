@@ -1,57 +1,31 @@
 package main
 
 import (
-	"DBproject/internal/forum"
 	http2 "DBproject/internal/forum/delivery/http"
 	repository2 "DBproject/internal/forum/repository"
 	usecase5 "DBproject/internal/forum/usecase"
-	"DBproject/internal/posts"
 	http3 "DBproject/internal/posts/delivery/http"
 	repository3 "DBproject/internal/posts/repository"
 	usecase2 "DBproject/internal/posts/usecase"
-	"DBproject/internal/service"
 	http5 "DBproject/internal/service/delivery/http"
 	repository5 "DBproject/internal/service/repository"
 	usecase4 "DBproject/internal/service/usecase"
-	"DBproject/internal/threads"
 	http4 "DBproject/internal/threads/delivery/http"
 	repository4 "DBproject/internal/threads/repository"
 	usecase3 "DBproject/internal/threads/usecase"
-	"DBproject/internal/user"
 	http0 "DBproject/internal/user/delivery/http"
 	"DBproject/internal/user/repository"
 	"DBproject/internal/user/usecase"
 	"fmt"
+	"github.com/gorilla/mux"
 	"github.com/jackc/pgx"
-	"github.com/labstack/echo/v4"
 	_ "github.com/lib/pq"
+	"net/http"
 )
 
-func router(e *echo.Echo, user user.UserHandler, forum forum.ForumHandler, posts posts.PostsHandler,
-	threads threads.ThreadsHandler, service service.ServiceHandler) {
-	e.POST("/api/forum/create", forum.ForumCreate)
-	e.GET("/api/forum/:slug/details", forum.ForumGetOne)
-	e.POST("/api/forum/:slug/create", forum.ThreadCreate)
-	e.GET("/api/forum/:slug/users", forum.ForumGetUsers)
-	e.GET("/api/forum/:slug/threads", forum.ForumGetThreads)
-	e.GET("/api/post/:id/details", posts.PostGetOne)
-	e.POST("/api/post/:id/details", posts.PostUpdate)
-	e.POST("/api/service/clear", service.Clear)
-	e.GET("/api/service/status", service.Status)
-	e.POST("/api/thread/:slug_or_id/create", posts.PostsCreate)
-	e.GET("/api/thread/:slug_or_id/details", threads.ThreadGetOne)
-	e.POST("/api/thread/:slug_or_id/details", threads.ThreadUpdate)
-	e.GET("/api/thread/:slug_or_id/posts", threads.ThreadGetPosts) // todo
-	e.POST("/api/thread/:slug_or_id/vote", threads.ThreadVote)
-	e.POST("/api/user/:nickname/create", user.UserCreate)
-	e.GET("/api/user/:nickname/profile", user.UserGetOne)
-	e.POST("/api/user/:nickname/profile", user.UserUpdate)
-}
-
 func main() {
-	e := echo.New()
-
 	connectionString := "postgres://lbznv:1111@localhost/forums?sslmode=disable"
+	//connectionString := "postgres://labzunova:1111@localhost/postgres?sslmode=disable"
 	config, err := pgx.ParseURI(connectionString)
 	if err != nil {
 		fmt.Println(err)
@@ -61,9 +35,11 @@ func main() {
 	db, err := pgx.NewConnPool(
 		pgx.ConnPoolConfig{
 			ConnConfig:     config,
-			MaxConnections: 2000,
+			MaxConnections: 100,
+			AfterConnect:   nil,
+			AcquireTimeout: 0,
 		})
-	
+
 	userRepo := repository.NewUsersRepo(db)
 	userUcase := usecase.NewUserUsecase(userRepo)
 	userHandler := http0.NewUserHandler(userUcase)
@@ -84,6 +60,24 @@ func main() {
 	serviceUcase := usecase4.NewServiceUsecase(serviceRepo)
 	serviceHandler := http5.NewServiceHandler(serviceUcase)
 
-	router(e, userHandler, forumHandler, postsHandler, threadsHandler, serviceHandler)
-	e.Logger.Fatal(e.Start(":5000"))
+	api := mux.NewRouter().PathPrefix("/api").Subrouter()
+	api.HandleFunc("/forum/create", forumHandler.ForumCreate).Methods(http.MethodPost)
+	api.HandleFunc("/forum/{slug}/details", forumHandler.ForumGetOne).Methods(http.MethodGet)
+	api.HandleFunc("/forum/{slug}/create", forumHandler.ThreadCreate).Methods(http.MethodPost)
+	api.HandleFunc("/forum/{slug}/users", forumHandler.ForumGetUsers).Methods(http.MethodGet)
+	api.HandleFunc("/forum/{slug}/threads", forumHandler.ForumGetThreads).Methods(http.MethodGet)
+	api.HandleFunc("/post/{id}/details", postsHandler.PostGetOne).Methods(http.MethodGet)
+	api.HandleFunc("/post/{id}/details", postsHandler.PostUpdate).Methods(http.MethodPost)
+	api.HandleFunc("/service/clear", serviceHandler.Clear).Methods(http.MethodPost)
+	api.HandleFunc("/service/status", serviceHandler.Status).Methods(http.MethodGet)
+	api.HandleFunc("/thread/{slug_or_id}/create", postsHandler.PostsCreate).Methods(http.MethodPost)
+	api.HandleFunc("/thread/{slug_or_id}/details", threadsHandler.ThreadGetOne).Methods(http.MethodGet)
+	api.HandleFunc("/thread/{slug_or_id}/details", threadsHandler.ThreadUpdate).Methods(http.MethodPost)
+	api.HandleFunc("/thread/{slug_or_id}/posts", threadsHandler.ThreadGetPosts).Methods(http.MethodGet)
+	api.HandleFunc("/thread/{slug_or_id}/vote", threadsHandler.ThreadVote).Methods(http.MethodPost)
+	api.HandleFunc("/user/{nickname}/create", userHandler.UserCreate).Methods(http.MethodPost)
+	api.HandleFunc("/user/{nickname}/profile", userHandler.UserGetOne).Methods(http.MethodGet)
+	api.HandleFunc("/user/{nickname}/profile", userHandler.UserUpdate).Methods(http.MethodPost)
+
+	http.ListenAndServe(":5000", api)
 }

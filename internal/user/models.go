@@ -2,13 +2,13 @@ package user
 
 import (
 	"DBproject/models"
-	"github.com/labstack/echo/v4"
+	"net/http"
 )
 
 type UserHandler interface {
-	UserCreate(c echo.Context) error
-	UserGetOne(c echo.Context) error
-	UserUpdate(c echo.Context) error
+	UserCreate(w http.ResponseWriter, r *http.Request)
+	UserGetOne(w http.ResponseWriter, r *http.Request)
+	UserUpdate(w http.ResponseWriter, r *http.Request)
 }
 
 type UserUsecase interface {

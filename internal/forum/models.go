@@ -2,15 +2,15 @@ package forum
 
 import (
 	"DBproject/models"
-	"github.com/labstack/echo/v4"
+	"net/http"
 )
 
 type ForumHandler interface {
-	ForumCreate(c echo.Context) error
-	ForumGetOne(c echo.Context) error
-	ThreadCreate(c echo.Context) error
-	ForumGetUsers(c echo.Context) error
-	ForumGetThreads(c echo.Context) error
+	ForumCreate(w http.ResponseWriter, r *http.Request)
+	ForumGetOne(w http.ResponseWriter, r *http.Request)
+	ThreadCreate(w http.ResponseWriter, r *http.Request)
+	ForumGetUsers(w http.ResponseWriter, r *http.Request)
+	ForumGetThreads(w http.ResponseWriter, r *http.Request)
 }
 
 type ForumUsecase interface {

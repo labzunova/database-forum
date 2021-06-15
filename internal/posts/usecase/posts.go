@@ -22,7 +22,7 @@ func (p postsUsecase) GetPost(id int) (models.Post, models.Error) {
 }
 
 func (p postsUsecase) GetPostInfo(postInfo models.Post, id int, related []string) (post posts.FullPost, error models.Error) {
-	error.Code = 500
+	error.Code = 200
 
 	for _, info := range related {
 		fmt.Println("related", info)
