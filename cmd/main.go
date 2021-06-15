@@ -63,23 +63,7 @@ func main() {
 			ConnConfig:     config,
 			MaxConnections: 2000,
 		})
-
-	//conn2, err := pgxpool.Connect(context.Background(), "host=localhost dbname=forums user=lbzv password=1111 pool_max_conns=10")
-
-	//dsn := fmt.Sprintf("user=%s password=%s dbname=%s", "lbznv", "1111", "forums")
-	//db, err := sql.Open("postgres", dsn)
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//
-	//db.SetMaxOpenConns(10)
-	//db.SetMaxIdleConns(3)
-	//
-	//err = db.Ping()
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-
+	
 	userRepo := repository.NewUsersRepo(db)
 	userUcase := usecase.NewUserUsecase(userRepo)
 	userHandler := http0.NewUserHandler(userUcase)
