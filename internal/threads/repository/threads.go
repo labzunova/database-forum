@@ -19,32 +19,32 @@ func NewThreadsRepo(db *pgx.ConnPool) threads.ThreadsRepo {
 }
 
 const treeDescSince = `
-	select id, parent, author, message, isEdited, forum, thread, created
+	select thread, author, forum, isEdited, message, parent, created, id
 	from posts
 	where thread = $1 and path < (select path from posts where id = $2)
 	order by path desc
 	limit $3`
 const treeSince = `
-	select id, parent, author, message, isEdited, forum, thread, created
+	select thread, author, forum, isEdited, message, parent, created, id
 	from posts
 	where thread = $1 and path > (select path from posts where id = $2)
 	order by path asc
 	limit $3`
 const treeDesc = `
-	select id, parent, author, message, isEdited, forum, thread, created
+	select thread, author, forum, isEdited, message, parent, created, id
 	from posts
 	where thread = $1 
 	order by path desc
 	limit $2`
 const tree = `
-	select id, parent, author, message, isEdited, forum, thread, created
+	select thread, author, forum, isEdited, message, parent, created, id
 	from posts
 	where thread = $1 
 	order by path asc
 	limit $2`
 
 const parentTreeDescSince = `
-	select id, parent, author, message, isEdited, forum, thread, created
+	select thread, author, forum, isEdited, message, parent, created, id
 	from posts
 	where thread = $1 and path[1] in(
 		select distinct path[1] from posts
@@ -54,7 +54,8 @@ const parentTreeDescSince = `
 		limit $3
 	)
 	order by path[1] desc, path[2:]`
-const parentTreeSince = `select id, parent, author, message, isEdited, forum, thread, created
+const parentTreeSince = `
+	select thread, author, forum, isEdited, message, parent, created, id
 	from posts
 	where thread = $1 and path[1] in(
 		select distinct path[1] from posts
@@ -65,7 +66,7 @@ const parentTreeSince = `select id, parent, author, message, isEdited, forum, th
 	)
 	order by path`
 const parentTreeDesc = `	
-	select id, parent, author, message, isEdited, forum, thread, created
+	select thread, author, forum, isEdited, message, parent, created, id
 	from posts
 	where thread = $1 and path[1] in(
 		select distinct path[1] from posts
@@ -75,7 +76,7 @@ const parentTreeDesc = `
 	)
 	order by path[1] desc, path[2:]`
 const parentTree = `
-	select id, parent, author, message, isEdited, forum, thread, created
+	select thread, author, forum, isEdited, message, parent, created, id
 	from posts
 	where thread = $1 and path[1] in(
 		select distinct path[1] from posts
@@ -97,8 +98,8 @@ func (db *threadsRepo) GetThread(slug string, id int) (models.Thread, models.Err
 	fmt.Println(slug)
 	if id != 0 {
 		fmt.Println("get thread by id")
-		err := db.DB.QueryRow("select title, author, forum, message, votes, slug, created from threads where id = $1", id).
-			Scan(&thread.Title, &thread.Author, &thread.Forum, &thread.Message, &thread.Votes, &threadSlug, &thread.Created)
+		err := db.DB.QueryRow("select id, slug, forum, author, title, message, votes, created from threads where id = $1 limit 1", id).
+			Scan(&thread.ID, &threadSlug, &thread.Forum, &thread.Author, &thread.Title, &thread.Message, &thread.Votes, &thread.Created)
 		fmt.Println(err)
 		if threadSlug != nil {
 			thread.Slug = *threadSlug
@@ -108,8 +109,8 @@ func (db *threadsRepo) GetThread(slug string, id int) (models.Thread, models.Err
 		}
 	} else {
 		fmt.Println("get thread by slug")
-		err := db.DB.QueryRow("select id, slug, title, author, forum, message, votes, created from threads where slug = $1", slug).
-			Scan(&thread.ID,  &threadSlug, &thread.Title, &thread.Author, &thread.Forum, &thread.Message, &thread.Votes, &thread.Created)
+		err := db.DB.QueryRow("select id, slug, forum, author, title, message, votes, created from threads where slug = $1", slug).
+			Scan(&thread.ID, &threadSlug, &thread.Forum, &thread.Author, &thread.Title, &thread.Message, &thread.Votes, &thread.Created)
 		if threadSlug != nil {
 			thread.Slug = *threadSlug
 		}
@@ -127,9 +128,9 @@ func (db *threadsRepo) UpdateThreadBySlug(slug string, thread models.Thread) (mo
 	err := db.DB.QueryRow(`
 		update threads set message=coalesce(nullif($1,''), message), title=coalesce(nullif($2,''), title) 
 		where slug = $3 
-		returning id, slug, title, author, forum, message, votes, created`,
+		returning id, slug, forum, author, title, message, votes, created`,
 		thread.Message, thread.Title, slug).
-		Scan(&thread.ID, &threadSlug, &thread.Title, &thread.Author, &thread.Forum, &thread.Message, &thread.Votes, &thread.Created)
+		Scan(&thread.ID, &threadSlug, &thread.Forum, &thread.Author, &thread.Title, &thread.Message, &thread.Votes, &thread.Created)
 	if threadSlug != nil {
 		thread.Slug = *threadSlug
 	}
@@ -145,9 +146,9 @@ func (db *threadsRepo) UpdateThreadById(id int, thread models.Thread) (models.Th
 	err := db.DB.QueryRow(`
 		update threads set message=coalesce(nullif($1,''), message), title=coalesce(nullif($2,''), title)
 		where id = $3 
-		returning id, slug, title, author, forum, message, votes, created`,
+		returning id, slug, forum, author, title, message, votes, created`,
 		thread.Message, thread.Title, id).
-		Scan(&thread.ID, &threadSlug, &thread.Title, &thread.Author, &thread.Forum, &thread.Message, &thread.Votes, &thread.Created)
+		Scan(&thread.ID, &threadSlug, &thread.Forum, &thread.Author, &thread.Title, &thread.Message, &thread.Votes, &thread.Created)
 	if threadSlug != nil {
 		thread.Slug = *threadSlug
 	}
@@ -210,7 +211,7 @@ func (db *threadsRepo) GetThreadPostsById(id int, slugOrId string, params models
 		switch {
 		case params.Desc && params.Since != 0:
 			query = `
-				SELECT id, parent, author, message, isEdited, forum, thread, created
+				select thread, author, forum, isEdited, message, parent, created, id
 				FROM posts
 				WHERE thread = $1 and id < $2
 				ORDER BY id DESC
@@ -219,7 +220,7 @@ func (db *threadsRepo) GetThreadPostsById(id int, slugOrId string, params models
 			queryParameters = append(queryParameters, params.Since, params.Limit)
 		case !params.Desc && params.Since != 0:
 			query = `
-				SELECT id, parent, author, message, isEdited, forum, thread, created
+				select thread, author, forum, isEdited, message, parent, created, id
 				FROM posts
 				WHERE thread = $1 and id > $2
 				ORDER BY id
@@ -228,7 +229,7 @@ func (db *threadsRepo) GetThreadPostsById(id int, slugOrId string, params models
 			queryParameters = append(queryParameters, params.Since, params.Limit)
 		case params.Desc && params.Since == 0:
 			query = `
-				SELECT id, parent, author, message, isEdited, forum, thread, created
+				select thread, author, forum, isEdited, message, parent, created, id
 				FROM posts
 				WHERE thread = $1
 				ORDER BY id DESC
@@ -237,7 +238,7 @@ func (db *threadsRepo) GetThreadPostsById(id int, slugOrId string, params models
 			queryParameters = append(queryParameters, params.Limit)
 		case !params.Desc && params.Since == 0:
 			query = `
-				SELECT id, parent, author, message, isEdited, forum, thread, created
+				select thread, author, forum, isEdited, message, parent, created, id
 				FROM posts
 				WHERE thread = $1
 				ORDER BY id
@@ -268,14 +269,14 @@ func (db *threadsRepo) GetThreadPostsById(id int, slugOrId string, params models
 		post := models.Post{}
 		var parent *int
 		err = rows.Scan(
-			&post.ID,
-			&parent,
-			&post.Author,
-			&post.Message,
-			&post.IsEdited,
-			&post.Forum,
 			&post.Thread,
+			&post.Author,
+			&post.Forum,
+			&post.IsEdited,
+			&post.Message,
+			&parent,
 			&post.Created,
+			&post.ID,
 		)
 		if parent != nil {
 			post.Parent = *parent

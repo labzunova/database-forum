@@ -24,8 +24,8 @@ func NewPostsRepo(db *pgx.ConnPool) posts.PostsRepo {
 func (db *postsRepo) GetPost(id int) (models.Post, models.Error) {
 	post := models.Post{}
 	var parent *int
-	err := db.DB.QueryRow("select parent, author, message, isedited, forum, thread, created from posts where id=$1", id).
-		Scan(&parent, &post.Author, &post.Message, &post.IsEdited, &post.Forum, &post.Thread, &post.Created)
+	err := db.DB.QueryRow("select thread, author, forum, isedited, message, parent, created from posts where id=$1 limit 1", id).
+		Scan(&post.Thread, &post.Author, &post.Forum, &post.IsEdited, &post.Message, &parent, &post.Created)
 	fmt.Println("get post error", err)
 	if err == pgx.ErrNoRows {
 		return models.Post{}, models.Error{Code: 404}
@@ -43,7 +43,7 @@ func (db *postsRepo) GetPostAuthor(nickname string) (models.User, models.Error) 
 	author := models.User{}
 	err := db.DB.QueryRow(`
 	select nickname, fullname, about, email from users
-	where nickname=$1`, nickname).Scan(&author.Nickname, &author.FullName, &author.About, &author.Email)
+	where nickname=$1 limit 1`, nickname).Scan(&author.Nickname, &author.FullName, &author.About, &author.Email)
 	fmt.Println("get post author error", err)
 	if err != nil {
 		return author, models.Error{Code: 500}
@@ -57,7 +57,7 @@ func (db *postsRepo) GetPostThread(threadId int) (models.Thread, models.Error) {
 	var threadSlug *string
 	err := db.DB.QueryRow(`
 	select id, title, author, forum, message, votes, slug, created from threads	
-	where id=$1`, threadId).Scan(&thread.ID, &thread.Title, &thread.Author, &thread.Forum, &thread.Message, &thread.Votes, &threadSlug, &thread.Created)
+	where id=$1 limit 1`, threadId).Scan(&thread.ID, &thread.Title, &thread.Author, &thread.Forum, &thread.Message, &thread.Votes, &threadSlug, &thread.Created)
 	fmt.Println("get post thread error", err)
 	if err != nil {
 		return thread, models.Error{Code: 500}
@@ -73,8 +73,8 @@ func (db *postsRepo) GetPostThread(threadId int) (models.Thread, models.Error) {
 func (db *postsRepo) GetPostForum(forumSlug string) (models.Forum, models.Error) {
 	forum := models.Forum{}
 	err := db.DB.QueryRow(`
-	select f.title, f.user, f.slug, f.posts_count, f.threads_count from forums f
-	where slug=$1`, forumSlug).Scan(&forum.Title, &forum.User, &forum.Slug, &forum.Posts, &forum.Threads)
+	select f.slug, f.title, f.posts_count, f.threads_count, f.user from forums f
+	where slug=$1 limit 1`, forumSlug).Scan(&forum.Slug, &forum.Title, &forum.Posts, &forum.Threads, &forum.User)
 	fmt.Println("get post forum error", err)
 	if err != nil {
 		return forum, models.Error{Code: 404}
@@ -120,7 +120,7 @@ func (db *postsRepo) CreatePosts(thread models.Thread, posts []models.Post) ([]m
 
 	createdTime := time.Now()
 
-	query := `insert into posts (parent, author, message, forum, thread, created) values `
+	query := `insert into posts (thread, author, forum, message, parent, created) values `
 	queryParams := make([]interface{}, 0)
 
 	last := len(posts) - 1
@@ -143,7 +143,7 @@ func (db *postsRepo) CreatePosts(thread models.Thread, posts []models.Post) ([]m
 			//query += fmt.Sprintf(`(%d,'%s','%s','%s', %d, $1), `, parentPost, post.Author, post.Message, thread.Forum, thread.ID)
 			query += fmt.Sprintf(`(nullif($%d,0),$%d,$%d,$%d,$%d,$%d), `, i*6+1, i*6+2, i*6+3, i*6+4, i*6+5, i*6+6)
 		}
-		queryParams = append(queryParams, parentPost, post.Author, post.Message, thread.Forum, thread.ID, createdTime)
+		queryParams = append(queryParams, thread.ID, post.Author, thread.Forum, post.Message, parentPost, createdTime)
 	}
 
 	query += " returning id, created"
@@ -199,7 +199,7 @@ func (db *postsRepo) GetThreadAndForumById(id int) (models.Thread, models.Error)
 	fmt.Println("      GetThreadAndForumById")
 	var threadSlug *string
 	var thread models.Thread
-	err := db.DB.QueryRow("select slug, forum from threads where id=$1", id).
+	err := db.DB.QueryRow("select slug, forum from threads where id=$1 limit 1", id).
 		Scan(&threadSlug, &thread.Forum)
 	thread.ID = id
 	fmt.Println(thread)
@@ -218,7 +218,7 @@ func (db *postsRepo) GetThreadAndForumBySlug(slug string) (models.Thread, models
 	fmt.Println("      GetThreadAndForumBySlug")
 
 	var thread models.Thread
-	err := db.DB.QueryRow("select id, forum from threads where slug=$1", slug).
+	err := db.DB.QueryRow("select id, forum from threads where slug=$1 limit 1", slug).
 		Scan(&thread.ID, &thread.Forum)
 	thread.Slug = slug
 	fmt.Println(thread)

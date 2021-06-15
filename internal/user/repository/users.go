@@ -37,7 +37,7 @@ func (db *usersRepo) GetUser(nickname string) (models.User, models.Error) {
 	fmt.Println("get user ", nickname)
 
 	userr := models.User{}
-	err := db.DB.QueryRow("select nickname, fullname, about, email from users where nickname=$1", nickname).
+	err := db.DB.QueryRow("select nickname, fullname, about, email from users where nickname=$1 limit 1", nickname).
 		Scan(&userr.Nickname, &userr.FullName, &userr.About, &userr.Email)
 	fmt.Println("ERR", err)
 	if err == pgx.ErrNoRows {
@@ -57,7 +57,7 @@ func (db *usersRepo) UpdateUser(profile models.User) (models.User, models.Error)
 		update users set 
 		fullname=coalesce(nullif($1, ''), fullname),
 		about=coalesce(nullif($2, ''), about),
-		email=coalesce(nullif($3, ''), email)
+		email=coalesce(nullif($3, ''), email),
 		where nickname=$4
 		returning fullname, about, email`, profile.FullName, profile.About, profile.Email, profile.Nickname).
 		Scan(&profile.FullName, &profile.About, &profile.Email)
