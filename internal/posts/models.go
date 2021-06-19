@@ -22,13 +22,13 @@ type PostsHandler interface {
 	PostsCreate(w http.ResponseWriter, r *http.Request)
 }
 
-type PostsUsecase interface {
-	GetPost(id int) (models.Post, models.Error)
-	GetPostInfo(post models.Post, id int, related []string) (FullPost, models.Error)
-
-	UpdatePost(id int, message string) (models.Post, models.Error)
-	CreatePosts(slug string, posts []models.Post) ([]models.Post, models.Error)
-}
+//type PostsUsecase interface {
+//	GetPost(id int) (models.Post, models.Error)
+//	GetPostInfo(post models.Post, id int, related []string) (FullPost, models.Error)
+//
+//	UpdatePost(id int, message string) (models.Post, models.Error)
+//	CreatePosts(slug string, posts []models.Post) ([]models.Post, models.Error)
+//}
 
 type PostsRepo interface {
 	GetPost(id int) (models.Post, models.Error)

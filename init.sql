@@ -250,12 +250,12 @@ CREATE INDEX IF NOT EXISTS user_nickname on users using hash(nickname); -- NEW
 
 -- FORUMS --
 CREATE UNLOGGED TABLE forums (
-                                 slug CITEXT primary key UNIQUE NOT NULL,
                                  title TEXT NOT NULL,
+                                 "user" CITEXT NOT NULL,
+                                 slug CITEXT primary key UNIQUE NOT NULL,
     -- "user" CITEXT REFERENCES users(nickname) ON DELETE CASCADE NOT NULL,
                                  threads_count INTEGER DEFAULT 0,
                                  posts_count INTEGER DEFAULT 0,
-                                 "user" CITEXT NOT NULL,
                                  FOREIGN KEY ("user") REFERENCES Users (nickname),
                                  created TIMESTAMP(3) WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
@@ -452,7 +452,7 @@ begin
     update threads set votes = votes - old.vote + new.vote
     where id = new.thread;
 
-    return null;
+    return null;a
 end;
 $change_vote$ LANGUAGE plpgsql;
 create trigger change_vote

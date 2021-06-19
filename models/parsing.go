@@ -3,7 +3,7 @@ package models
 type ParseParams struct {
 	Limit int    `json:"limit"`
 	Since string `json:"since"`
-	Desc  bool   `json:"desc"`
+	Desc  string  `json:"desc"`
 }
 
 type ParseParamsThread struct {

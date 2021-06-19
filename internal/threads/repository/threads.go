@@ -95,9 +95,7 @@ func (db *threadsRepo) GetThread(slug string, id int) (models.Thread, models.Err
 		thread.Slug = slug
 	}
 
-	fmt.Println(slug)
 	if id != 0 {
-		fmt.Println("get thread by id")
 		err := db.DB.QueryRow("select id, slug, forum, author, title, message, votes, created from threads where id = $1 limit 1", id).
 			Scan(&thread.ID, &threadSlug, &thread.Forum, &thread.Author, &thread.Title, &thread.Message, &thread.Votes, &thread.Created)
 		fmt.Println(err)
@@ -108,13 +106,12 @@ func (db *threadsRepo) GetThread(slug string, id int) (models.Thread, models.Err
 			return thread, models.Error{Code: 404}
 		}
 	} else {
-		fmt.Println("get thread by slug")
 		err := db.DB.QueryRow("select id, slug, forum, author, title, message, votes, created from threads where slug = $1", slug).
 			Scan(&thread.ID, &threadSlug, &thread.Forum, &thread.Author, &thread.Title, &thread.Message, &thread.Votes, &thread.Created)
 		if threadSlug != nil {
 			thread.Slug = *threadSlug
 		}
-		fmt.Println(thread, err)
+		fmt.Println(err)
 		if err != nil {
 			return thread, models.Error{Code: 404, Message: "error"}
 		}
@@ -261,7 +258,6 @@ func (db *threadsRepo) GetThreadPostsById(id int, slugOrId string, params models
 	//}
 	if err != nil {
 		return nil, models.Error{Code: 404, Message: "Can't find forum "}
-		//return nil, models.Error{Code: 500}
 	}
 
 	posts := make([]models.Post, 0)
@@ -326,12 +322,6 @@ func (db *threadsRepo) VoteThreadBySlug(slug string, vote models.Vote) models.Er
 		}
 	}
 
-	//fmt.Println("NEW VOICE ", vote.Voice)
-	//_, err = db.DB.Exec("update threads set votes=votes+$1 where slug=$2", vote.Voice, slug)
-	//if err != nil {
-	//	return models.Error{Code: 500}
-	//}
-
 	return models.Error{Code: 200}
 }
 
@@ -357,20 +347,12 @@ func (db *threadsRepo) VoteThreadById(id int, vote models.Vote) models.Error {
 	}
 	fmt.Println("UPDATING")
 
-	//fmt.Println("NEW VOICE ", vote)
-	//_, err = db.DB.Exec("update threads set votes=votes+$1 where id=$2", vote.Voice, id)
-	//if err != nil {
-	//	return models.Error{Code: 500}
-	//}
-
 	return models.Error{Code: 200}
 }
 
 func (db *threadsRepo) GetThreadIDBySlug(slug string, id int) (int, models.Error) {
 	err := db.DB.QueryRow("select id from threads where slug=$1 or id=$2", slug, id).Scan(&id)
-	fmt.Println("get by slug", err, id)
 	if err != nil || id == 0 {
-		fmt.Println("return err")
 		return id, models.Error{Code: 404}
 	}
 	return id, models.Error{Code: 200}

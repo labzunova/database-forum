@@ -1,21 +1,16 @@
 package main
 
 import (
-	http2 "DBproject/internal/forum/delivery/http"
+	"DBproject/internal/forum/delivery"
 	repository2 "DBproject/internal/forum/repository"
-	usecase5 "DBproject/internal/forum/usecase"
 	http3 "DBproject/internal/posts/delivery/http"
 	repository3 "DBproject/internal/posts/repository"
-	usecase2 "DBproject/internal/posts/usecase"
 	http5 "DBproject/internal/service/delivery/http"
 	repository5 "DBproject/internal/service/repository"
-	usecase4 "DBproject/internal/service/usecase"
 	http4 "DBproject/internal/threads/delivery/http"
 	repository4 "DBproject/internal/threads/repository"
-	usecase3 "DBproject/internal/threads/usecase"
 	http0 "DBproject/internal/user/delivery/http"
 	"DBproject/internal/user/repository"
-	"DBproject/internal/user/usecase"
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx"
@@ -41,24 +36,24 @@ func main() {
 		})
 
 	userRepo := repository.NewUsersRepo(db)
-	userUcase := usecase.NewUserUsecase(userRepo)
-	userHandler := http0.NewUserHandler(userUcase)
+	//userUcase := usecase.NewUserUsecase(userRepo)
+	userHandler := http0.NewUserHandler(userRepo)
 
 	forumRepo := repository2.NewForumRepo(db)
-	forumUcase := usecase5.NewForumUsecase(forumRepo)
-	forumHandler := http2.NewForumHandler(forumUcase)
+	//forumUcase := usecase5.NewForumUsecase(forumRepo)
+	forumHandler := delivery.NewForumHandler(forumRepo)
 
 	postsRepo := repository3.NewPostsRepo(db)
-	postsUcase := usecase2.NewPostsUsecase(postsRepo)
-	postsHandler := http3.NewPostsHandler(postsUcase)
+	//postsUcase := usecase2.NewPostsUsecase(postsRepo)
+	postsHandler := http3.NewPostsHandler(postsRepo)
 
 	threadsRepo := repository4.NewThreadsRepo(db)
-	threadsUcase := usecase3.NewThreadsUsecase(threadsRepo)
-	threadsHandler := http4.NewThreadsHandler(threadsUcase)
+	//threadsUcase := usecase3.NewThreadsUsecase(threadsRepo)
+	threadsHandler := http4.NewThreadsHandler(threadsRepo)
 
 	serviceRepo := repository5.NewServiceRepo(db)
-	serviceUcase := usecase4.NewServiceUsecase(serviceRepo)
-	serviceHandler := http5.NewServiceHandler(serviceUcase)
+	//serviceUcase := usecase4.NewServiceUsecase(serviceRepo)
+	serviceHandler := http5.NewServiceHandler(serviceRepo)
 
 	api := mux.NewRouter().PathPrefix("/api").Subrouter()
 	api.HandleFunc("/forum/create", forumHandler.ForumCreate).Methods(http.MethodPost)

@@ -12,12 +12,13 @@ import (
 )
 
 type Handler struct {
-	ThreadsUcase threads.ThreadsUsecase
+	threadsRepo threads.ThreadsRepo
+
 }
 
-func NewThreadsHandler(threadsUcase threads.ThreadsUsecase) threads.ThreadsHandler {
+func NewThreadsHandler(repo threads.ThreadsRepo) threads.ThreadsHandler {
 	handler := &Handler{
-		ThreadsUcase: threadsUcase,
+		threadsRepo: repo,
 	}
 	return handler
 }
@@ -27,7 +28,8 @@ func (h *Handler) ThreadGetOne(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	slug := params["slug_or_id"]
 
-	thread, err := h.ThreadsUcase.GetThread(slug)
+	id := h.SlugOrID(slug)
+	thread, err := h.threadsRepo.GetThread(slug, id)
 	if err.Code == 404 {
 		helpers.CreateResponse(w, http.StatusNotFound, err)
 		return
@@ -45,8 +47,13 @@ func (h *Handler) ThreadUpdate(w http.ResponseWriter, r *http.Request) {
 	newThread := new(models.Thread)
 	json.NewDecoder(r.Body).Decode(&newThread)
 
-
-	thread, err := h.ThreadsUcase.UpdateThread(slugOrId, *newThread)
+	var err models.Error
+	id := h.SlugOrID(slugOrId)
+	if id != 0 {
+		*newThread, err = h.threadsRepo.UpdateThreadById(id, *newThread)
+	}
+	thread, err := h.threadsRepo.UpdateThreadBySlug(slugOrId, *newThread)
+	//thread, err := h.ThreadsUcase.UpdateThread(slugOrId, *newThread)
 	if err.Code == 404 {
 		helpers.CreateResponse(w, http.StatusNotFound, err)
 		return
@@ -80,7 +87,26 @@ func (h *Handler) ThreadGetPosts(w http.ResponseWriter, r *http.Request) {
 		getPosts.Desc = false
 	}
 
-	posts, err := h.ThreadsUcase.GetThreadPosts(slugOrId, *getPosts)
+	id := h.SlugOrID(slugOrId)
+	var err models.Error
+	if id != 0 {
+		fmt.Println("id:", id)
+		id, err = h.threadsRepo.GetThreadIDBySlug(slugOrId, id)
+		if err.Code != 200 {
+			err.Message = "Can't find forum by slug: " + slugOrId
+			helpers.CreateResponse(w, http.StatusNotFound, err)
+			return
+		}
+	} else {
+		id, err = h.threadsRepo.GetThreadIDBySlug(slugOrId, 0)
+		fmt.Println("get by slug")
+		if err.Code != 200 {
+			err.Message = "Can't find forum by slug: " + slugOrId
+			helpers.CreateResponse(w, http.StatusNotFound, err)
+			return
+		}
+	}
+	posts, err := h.threadsRepo.GetThreadPostsById(id, slugOrId, *getPosts)
 	if err.Code == 404 {
 		err.Message = "Can't find forum by slug: " + slugOrId
 		helpers.CreateResponse(w, http.StatusNotFound, err)
@@ -101,7 +127,34 @@ func (h *Handler) ThreadVote(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	slug := params["slug_or_id"]
 
-	thread, err := h.ThreadsUcase.VoteThread(slug, *newVote)
+
+	id := h.SlugOrID(slug)
+	fmt.Println("slug or id ", slug, id)
+	if id != 0 {
+		fmt.Println("vote by id")
+		//err := h.threadsRepo.VoteThreadById(id, *newVote)
+		//if err.Code != 200 {
+		//	return models.Thread{}, err
+		//}
+		_ = h.threadsRepo.VoteThreadById(id, *newVote)
+
+		thread, err := h.threadsRepo.GetThread("", id)
+		if err.Code == 404 {
+			helpers.CreateResponse(w, http.StatusNotFound, err)
+			return
+		}
+		if err.Code != 200 {
+			helpers.CreateResponse(w, http.StatusInternalServerError, "Error")
+			return
+		}
+		helpers.CreateResponse(w, http.StatusOK, thread)
+		return
+	}
+
+	fmt.Println("vote by slug")
+	_ = h.threadsRepo.VoteThreadBySlug(slug, *newVote)
+
+	thread, err := h.threadsRepo.GetThread(slug, 0)
 	if err.Code == 404 {
 		helpers.CreateResponse(w, http.StatusNotFound, err)
 		return
@@ -113,4 +166,14 @@ func (h *Handler) ThreadVote(w http.ResponseWriter, r *http.Request) {
 
 	helpers.CreateResponse(w, http.StatusOK, thread)
 	return
+}
+
+
+func (h *Handler) SlugOrID(slugOrId string) int {
+	id, errID := strconv.Atoi(slugOrId)
+	if errID == nil {
+		return id
+	}
+
+	return 0
 }
