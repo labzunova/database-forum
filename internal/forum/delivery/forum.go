@@ -66,10 +66,11 @@ func (h Handler) ThreadCreate(w http.ResponseWriter, r *http.Request) {
 	newThread := new(models.Thread)
 	json.NewDecoder(r.Body).Decode(&newThread)
 
-	threadNew, err := h.forumRepository.CreateThread(slug, *newThread)
+	threadCreated, err := h.forumRepository.CreateThread(slug, *newThread)
 	if err.Code == 409 {
-		threadNew, err =  h.forumRepository.GetThreadBySlug(threadNew.Slug)
-		helpers.CreateResponse(w, http.StatusConflict, threadNew)
+		fmt.Println("get existing", slug)
+		threadCreated, err =  h.forumRepository.GetThreadBySlug(newThread.Slug)
+		helpers.CreateResponse(w, http.StatusConflict, threadCreated)
 		return
 	}
 
@@ -78,7 +79,7 @@ func (h Handler) ThreadCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	helpers.CreateResponse(w, http.StatusCreated, threadNew)
+	helpers.CreateResponse(w, http.StatusCreated, threadCreated)
 	return
 }
 

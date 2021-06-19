@@ -30,11 +30,15 @@ func (h *Handler) ThreadGetOne(w http.ResponseWriter, r *http.Request) {
 
 	id := h.SlugOrID(slug)
 	thread, err := h.threadsRepo.GetThread(slug, id)
+	fmt.Println(err)
 	if err.Code == 404 {
+		fmt.Println("				err")
 		helpers.CreateResponse(w, http.StatusNotFound, err)
 		return
 	}
 
+	fmt.Println(thread)
+	fmt.Println("alright")
 	helpers.CreateResponse(w, http.StatusOK, thread)
 	return
 }
@@ -51,15 +55,15 @@ func (h *Handler) ThreadUpdate(w http.ResponseWriter, r *http.Request) {
 	id := h.SlugOrID(slugOrId)
 	if id != 0 {
 		*newThread, err = h.threadsRepo.UpdateThreadById(id, *newThread)
+	} else {
+		*newThread, err = h.threadsRepo.UpdateThreadBySlug(slugOrId, *newThread)
 	}
-	thread, err := h.threadsRepo.UpdateThreadBySlug(slugOrId, *newThread)
-	//thread, err := h.ThreadsUcase.UpdateThread(slugOrId, *newThread)
 	if err.Code == 404 {
 		helpers.CreateResponse(w, http.StatusNotFound, err)
 		return
 	}
 
-	helpers.CreateResponse(w, http.StatusOK, thread)
+	helpers.CreateResponse(w, http.StatusOK, newThread)
 	return
 }
 
@@ -131,12 +135,12 @@ func (h *Handler) ThreadVote(w http.ResponseWriter, r *http.Request) {
 	id := h.SlugOrID(slug)
 	fmt.Println("slug or id ", slug, id)
 	if id != 0 {
-		fmt.Println("vote by id")
-		//err := h.threadsRepo.VoteThreadById(id, *newVote)
-		//if err.Code != 200 {
-		//	return models.Thread{}, err
-		//}
-		_ = h.threadsRepo.VoteThreadById(id, *newVote)
+		errr := h.threadsRepo.VoteThreadById(id, *newVote)
+		fmt.Println(errr)
+		if errr.Code != 200 {
+			helpers.CreateResponse(w, http.StatusNotFound, errr)
+			return
+		}
 
 		thread, err := h.threadsRepo.GetThread("", id)
 		if err.Code == 404 {
@@ -152,7 +156,11 @@ func (h *Handler) ThreadVote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Println("vote by slug")
-	_ = h.threadsRepo.VoteThreadBySlug(slug, *newVote)
+	errr := h.threadsRepo.VoteThreadBySlug(slug, *newVote)
+	if errr.Code != 200 {
+		helpers.CreateResponse(w, http.StatusNotFound, errr)
+		return
+	}
 
 	thread, err := h.threadsRepo.GetThread(slug, 0)
 	if err.Code == 404 {

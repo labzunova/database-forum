@@ -108,6 +108,7 @@ func (h *Handler) PostsCreate(w http.ResponseWriter, r *http.Request) {
 	} else {
 		var errr models.Error
 		thread, errr = h.postsRepository.GetThreadAndForumBySlug(slug)
+		fmt.Println(errr)
 		if errr.Code == 404 {
 			errr.Message = "Can't find post thread by id: " + slug
 			helpers.CreateResponse(w, http.StatusNotFound, err)
@@ -116,6 +117,11 @@ func (h *Handler) PostsCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	posts, errr := h.postsRepository.CreatePosts(thread, newPosts)
+	if errr.Code == 404 {
+		errr.Message = "Can't find user "
+		helpers.CreateResponse(w, http.StatusNotFound, err)
+		return
+	}
 	if errr.Code == 409 {
 		errr.Message = "Parent post was created in another thread"
 		helpers.CreateResponse(w, http.StatusConflict, errr)

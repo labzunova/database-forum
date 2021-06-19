@@ -97,6 +97,7 @@ func (f *forumRepo) CreateThread(slug string, thread models.Thread) (models.Thre
 
 	}
 	if errr != nil { // если такой форум уже еть
+		fmt.Println(errr)
 		fmt.Println("409")
 		return models.Thread{}, models.Error{Code: 409}
 	}
@@ -240,8 +241,9 @@ func (f *forumRepo) GetThreads(slug string, params models.ParseParams) ([]models
 
 func (f *forumRepo) GetThreadBySlug(slug string) (models.Thread, models.Error) {
 	thread := models.Thread{}
-	_ = f.DB.QueryRow("select slug, forum, author, title, message, votes, created  from threads where slug = $1 limit 1", slug).
+	err := f.DB.QueryRow("select id, slug, forum, author, title, message, votes, created  from threads where slug = $1 limit 1", slug).
 		Scan(
+			&thread.ID,
 			&thread.Slug,
 			&thread.Forum,
 			&thread.Author,
@@ -250,6 +252,7 @@ func (f *forumRepo) GetThreadBySlug(slug string) (models.Thread, models.Error) {
 			&thread.Votes,
 			&thread.Created,
 			)
+	fmt.Println(err)
 	return thread, models.Error{Code: 409}
 }
 

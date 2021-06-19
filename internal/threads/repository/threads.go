@@ -4,7 +4,6 @@ import (
 	"DBproject/internal/threads"
 	"DBproject/models"
 	"fmt"
-	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx"
 )
 
@@ -105,7 +104,10 @@ func (db *threadsRepo) GetThread(slug string, id int) (models.Thread, models.Err
 		if err != nil {
 			return thread, models.Error{Code: 404}
 		}
-	} else {
+		return thread, models.Error{Code: 200}
+	}
+
+	// by slug
 		err := db.DB.QueryRow("select id, slug, forum, author, title, message, votes, created from threads where slug = $1", slug).
 			Scan(&thread.ID, &threadSlug, &thread.Forum, &thread.Author, &thread.Title, &thread.Message, &thread.Votes, &thread.Created)
 		if threadSlug != nil {
@@ -113,11 +115,11 @@ func (db *threadsRepo) GetThread(slug string, id int) (models.Thread, models.Err
 		}
 		fmt.Println(err)
 		if err != nil {
+			fmt.Println("Ererer")
 			return thread, models.Error{Code: 404, Message: "error"}
 		}
-	}
+		return thread, models.Error{Code: 200}
 
-	return thread, models.Error{Code: 200}
 }
 
 func (db *threadsRepo) UpdateThreadBySlug(slug string, thread models.Thread) (models.Thread, models.Error) {
@@ -302,24 +304,9 @@ func (db *threadsRepo) VoteThreadBySlug(slug string, vote models.Vote) models.Er
 		update set vote=$3`, vote.Nickname, slug, vote.Voice)
 
 	fmt.Println(err)
-	dbErr, ok := err.(pgx.PgError)
-	if ok {
-		switch dbErr.Code {
-		case pgerrcode.ForeignKeyViolation:
-			var id int
-			err = db.DB.QueryRow("select user from users where nickname = $1", vote.Nickname).Scan(&id)
-			if err != nil {
-				return models.Error{Code: 404, Message: "Can't find user by nickname: " + vote.Nickname}
-			}
-			return models.Error{Code: 404, Message: "Can't find thread by slug: " + slug}
-		//case pgerrcode.UniqueViolation:
-		//	updateErr := db.UpdateVoteThreadBySlug(slug, vote)
-		//	if updateErr.Code != 200 {
-		//		return models.Error{Code: 500}
-		//	}
-
-		//	return models.Error{Code: 200}
-		}
+	if err != nil {
+		fmt.Println("ERROR")
+		return models.Error{Code: 404}
 	}
 
 	return models.Error{Code: 200}
@@ -330,20 +317,8 @@ func (db *threadsRepo) VoteThreadById(id int, vote models.Vote) models.Error {
     	($1,$2,$3)
 		on conflict ("user",thread) do
 		update set vote=$3`, vote.Nickname, id, vote.Voice)
-	fmt.Println(err)
-	dbErr, ok := err.(pgx.PgError)
-	fmt.Println(dbErr.Code)
-	if ok {
-		switch dbErr.Code {
-		case pgerrcode.NotNullViolation:
-			return models.Error{Code: 404}
-		//case pgerrcode.UniqueViolation:
-		//	updateErr := db.UpdateVoteThreadById(id, vote)
-		//	if updateErr.Code != 200 {
-		//		return models.Error{Code: 500}
-		//	}
-		//	return models.Error{Code: 200}
-		}
+	if err != nil {
+		return models.Error{Code: 404}
 	}
 	fmt.Println("UPDATING")
 
