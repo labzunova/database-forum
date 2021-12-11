@@ -8,20 +8,6 @@ FROM ubuntu:20.04
 
 RUN apt-get -y update && apt-get install -y tzdata
 
-ENV PGVER 12
-RUN apt-get -y update && apt-get install -y postgresql-$PGVER
-
-USER postgres
-
-RUN /etc/init.d/postgresql start &&\
-    psql --command "CREATE USER lbznv WITH SUPERUSER PASSWORD '1111';" &&\
-    createdb -E UTF8 -O lbznv forums &&\
-    /etc/init.d/postgresql stop
-
-EXPOSE 5432
-
-VOLUME ["/etc/postgresql", "/var/log/postgresql", "/var/lib/postgresql"]
-
 USER root
 
 WORKDIR /usr/src/app
@@ -33,4 +19,4 @@ EXPOSE 5000
 
 ENV PGPASSWORD 1111
 
-CMD service postgresql start && psql -h localhost -d forums -U lbznv -p 5432 -a -q -f ./init.sql && ./main
+#CMD service postgresql start && psql -h localhost -d forums -U lbznv -p 5432 -a -q -f ./init.sql && ./main
