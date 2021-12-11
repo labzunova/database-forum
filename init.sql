@@ -1,4 +1,4 @@
-CREATE EXTENSION IF NOT EXISTS CITEXT;
+-- CREATE EXTENSION IF NOT EXISTS CITEXT;
 
 DROP TABLE IF EXISTS votes CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
@@ -9,10 +9,10 @@ DROP TABLE IF EXISTS forum_users CASCADE;
 
 -- USERS --
 CREATE UNLOGGED TABLE users (
-                                nickname CITEXT COLLATE ucs_basic primary key NOT NULL UNIQUE,
+                                nickname TEXT COLLATE ucs_basic primary key NOT NULL UNIQUE,
                                 fullname TEXT,
                                 about TEXT,
-                                email CITEXT UNIQUE
+                                email TEXT UNIQUE
 );
 CREATE INDEX IF NOT EXISTS users_full_but_id ON users (nickname, fullname, about, email); -- GetPostAuthor
 --CREATE INDEX IF NOT EXISTS users_nick_id ON users (nickname, id); -- get id ny nick
@@ -21,12 +21,12 @@ CREATE INDEX IF NOT EXISTS user_nickname on users using hash(nickname); -- NEW
 
 -- FORUMS --
 CREATE UNLOGGED TABLE forums (
-                                 slug CITEXT primary key UNIQUE NOT NULL,
+                                 slug TEXT primary key UNIQUE NOT NULL,
                                  title TEXT NOT NULL,
     -- "user" CITEXT REFERENCES users(nickname) ON DELETE CASCADE NOT NULL,
                                  threads_count INTEGER DEFAULT 0,
                                  posts_count INTEGER DEFAULT 0,
-                                 "user" CITEXT NOT NULL,
+                                 "user" TEXT NOT NULL,
                                  FOREIGN KEY ("user") REFERENCES Users (nickname),
                                  created TIMESTAMP(3) WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
@@ -35,9 +35,9 @@ CREATE UNLOGGED TABLE forums (
 -- THREADS --
 CREATE UNLOGGED TABLE threads (
                                   id SERIAL NOT NULL PRIMARY KEY,
-                                  slug CITEXT unique,
-                                  forum CITEXT NOT NULL,
-                                  "author" CITEXT  NOT NULL,
+                                  slug TEXT unique,
+                                  forum TEXT NOT NULL,
+                                  "author" TEXT  NOT NULL,
                                   title TEXT NOT NULL,
                                   message TEXT NOT NULL,
                                   votes INT DEFAULT 0 NOT NULL,
@@ -73,8 +73,8 @@ execute procedure new_thread_added();
 CREATE UNLOGGED TABLE posts (
                                 id SERIAL NOT NULL PRIMARY KEY,
                                 "thread" INTEGER NOT NULL,
-                                "author" CITEXT NOT NULL,
-                                "forum" CITEXT NOT NULL,
+                                "author" TEXT NOT NULL,
+                                "forum" TEXT NOT NULL,
                                 isEdited BOOLEAN NOT NULL DEFAULT FALSE,
                                 message TEXT NOT NULL,
                                 parent INTEGER,
@@ -144,12 +144,12 @@ CREATE UNLOGGED TABLE forum_users (
                                       fullname TEXT,
     --  fullname TEXT,
                                       about TEXT,
-                                      email CITEXT,
-                                      userNickname CITEXT COLLATE ucs_basic,
+                                      email TEXT,
+                                      userNickname TEXT COLLATE ucs_basic,
 
     -- userNickname CITEXT REFERENCES users (nickname),
                                       FOREIGN KEY (userNickname) REFERENCES users (nickname),
-                                      forumSlug CITEXT, -- изменила из-за GetUsers
+                                      forumSlug TEXT, -- изменила из-за GetUsers
                                       FOREIGN KEY (forumSlug) REFERENCES forums (slug),
 
                                       unique (userNickname, forumSlug)
@@ -164,9 +164,9 @@ CREATE OR REPLACE FUNCTION new_forum_user_added() RETURNS TRIGGER AS
 $new_forum_user_added$
 begin
     declare
-        nickAuthor citext;
+        nickAuthor text;
         fullnameAuthor text;
-        emailAuthor citext;
+        emailAuthor text;
         aboutAuthor text;
     begin
         select nickname, fullname, about, email
@@ -192,7 +192,7 @@ execute procedure new_forum_user_added();
 
 -- VOTES --
 CREATE UNLOGGED TABLE votes (
-                                "user" CITEXT,
+                                "user" TEXT,
                                 FOREIGN KEY ("user") REFERENCES users (nickname),
                                 thread integer,
                                 FOREIGN KEY (thread)  REFERENCES threads(id),
