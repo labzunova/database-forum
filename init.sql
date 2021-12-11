@@ -17,43 +17,44 @@ CREATE UNLOGGED TABLE users (
 CREATE INDEX IF NOT EXISTS users_full_but_id ON users (nickname, fullname, about, email); -- GetPostAuthor
 --CREATE INDEX IF NOT EXISTS users_nick_id ON users (nickname, id); -- get id ny nick
 -- --CREATE INDEX IF NOT EXISTS user_nickname on users using hash(nickname); -- NEW
--- CREATE INDEX IF NOT EXISTS user_nickname on users using hash(nickname); -- NEW
+CREATE INDEX IF NOT EXISTS user_nickname on users using hash(nickname); -- NEW
 
 -- FORUMS --
 CREATE UNLOGGED TABLE forums (
+                                 slug CITEXT primary key UNIQUE NOT NULL,
                                  title TEXT NOT NULL,
     -- "user" CITEXT REFERENCES users(nickname) ON DELETE CASCADE NOT NULL,
+                                 threads_count INTEGER DEFAULT 0,
+                                 posts_count INTEGER DEFAULT 0,
                                  "user" CITEXT NOT NULL,
                                  FOREIGN KEY ("user") REFERENCES Users (nickname),
-                                 slug CITEXT primary key UNIQUE NOT NULL,
-                                 created TIMESTAMP(3) WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
-                                 threads_count INTEGER DEFAULT 0,
-                                 posts_count INTEGER DEFAULT 0
+                                 created TIMESTAMP(3) WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
--- CREATE INDEX IF NOT EXISTS forums_slug on forums using hash (slug); -- NEW
+--CREATE INDEX IF NOT EXISTS forums_slug on forums using hash (slug); -- NEW
 
 -- THREADS --
 CREATE UNLOGGED TABLE threads (
                                   id SERIAL NOT NULL PRIMARY KEY,
-                                  title TEXT NOT NULL,
                                   slug CITEXT unique,
-                                  "author" CITEXT  NOT NULL,
-                                  FOREIGN KEY ("author") REFERENCES users(nickname) ON DELETE CASCADE,
-    -- "forum" CITEXT REFERENCES forums(slug) ON DELETE CASCADE  NOT NULL,
                                   forum CITEXT NOT NULL,
-                                  FOREIGN KEY (forum) REFERENCES forums (slug),
+                                  "author" CITEXT  NOT NULL,
+                                  title TEXT NOT NULL,
                                   message TEXT NOT NULL,
                                   votes INT DEFAULT 0 NOT NULL,
-                                  created TIMESTAMP(3) WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP  NOT NULL
+    -- "forum" CITEXT REFERENCES forums(slug) ON DELETE CASCADE  NOT NULL,
+                                  created TIMESTAMP(3) WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP  NOT NULL,
+                                  FOREIGN KEY ("author") REFERENCES users(nickname) ON DELETE CASCADE,
+                                  FOREIGN KEY (forum) REFERENCES forums (slug)
 );
 CREATE INDEX IF NOT EXISTS thread_forum_and_created ON threads (forum, created); -- для get forum threads
-CREATE INDEX IF NOT EXISTS thread_slug ON threads (slug);
---CREATE INDEX IF NOT EXISTS thread_slug ON threads (lower(slug));
---CREATE INDEX IF NOT EXISTS thread_forum ON threads USING hash (forum);
-CREATE INDEX IF NOT EXISTS thread_created ON threads (created);
-CREATE INDEX IF NOT EXISTS threads_full ON threads (forum, slug, created,title, author, message, votes);
---CREATE INDEX IF NOT EXISTS thread_id_forum on threads(id, forum); -- NEW
---CREATE INDEX IF NOT EXISTS thread_slug_forum on threads(slug, forum); -- NEW
+-- CREATE INDEX IF NOT EXISTS thread_forum ON threads (forum); -- для get forum threads
+-- CREATE INDEX IF NOT EXISTS thread_slug ON threads (slug) where slug != '';
+-- --CREATE INDEX IF NOT EXISTS thread_slug ON threads (lower(slug));
+-- --CREATE INDEX IF NOT EXISTS thread_forum ON threads USING hash (forum);
+-- CREATE INDEX IF NOT EXISTS thread_created ON threads (created);
+-- --CREATE INDEX IF NOT EXISTS threads_full ON threads (forum, slug, created, title, author, message, votes);
+-- --CREATE INDEX IF NOT EXISTS thread_id_forum on threads(id, forum); -- NEW
+-- --CREATE INDEX IF NOT EXISTS thread_slug_forum on threads(slug, forum); -- NEW
 
 CREATE OR REPLACE FUNCTION new_thread_added() RETURNS TRIGGER AS
 $new_thread_added$
@@ -71,30 +72,33 @@ execute procedure new_thread_added();
 -- POSTS --
 CREATE UNLOGGED TABLE posts (
                                 id SERIAL NOT NULL PRIMARY KEY,
-                                parent INTEGER,
+                                "thread" INTEGER NOT NULL,
                                 "author" CITEXT NOT NULL,
-                                FOREIGN KEY ("author") REFERENCES users(nickname) ON DELETE CASCADE,
-                                message TEXT NOT NULL,
-                                isEdited BOOLEAN NOT NULL DEFAULT FALSE,
                                 "forum" CITEXT NOT NULL,
-                                FOREIGN KEY ("forum") REFERENCES forums(slug) ON DELETE CASCADE,
-                                "thread" INTEGER NOT NULL,-- ??? надо бы slug
-                                FOREIGN KEY ("thread") REFERENCES threads(id) ON DELETE CASCADE,
+                                isEdited BOOLEAN NOT NULL DEFAULT FALSE,
+                                message TEXT NOT NULL,
+                                parent INTEGER,
+
                                 created TIMESTAMP(3) WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
-                                path INTEGER[] NOT NULL
+                                path INTEGER[] NOT NULL,
+                                FOREIGN KEY ("author") REFERENCES users(nickname) ON DELETE CASCADE,
+                                FOREIGN KEY ("forum") REFERENCES forums(slug) ON DELETE CASCADE,
+                                FOREIGN KEY ("thread") REFERENCES threads(id) ON DELETE CASCADE
 );
-CREATE INDEX IF NOT EXISTS post_thread ON posts (thread);
---CREATE INDEX IF NOT EXISTS post_id_created_thread ON posts (id, created, thread);
---CREATE INDEX IF NOT EXISTS post_id_and_path ON posts ((path[1]), id);
+-- CREATE INDEX IF NOT EXISTS post_thread ON posts (thread);
+CREATE INDEX IF NOT EXISTS post_id_created_thread ON posts (id, created, thread);
+-- --CREATE INDEX IF NOT EXISTS post_id_and_path ON posts ((path[1]), id);
 CREATE INDEX IF NOT EXISTS post_parent_and_id ON posts (parent, id);
--- CREATE INDEX IF NOT EXISTS post_thread_parent ON posts (thread, parent); --
-CREATE INDEX IF NOT EXISTS post_thread_path1 ON posts (thread, (path[1])); --SUPERNEW MY
+CREATE INDEX IF NOT EXISTS post_id_path ON posts (id, path);
+-- -- CREATE INDEX IF NOT EXISTS post_thread_parent ON posts (thread, parent); --
+-- CREATE INDEX IF NOT EXISTS post_thread_path1 ON posts (thread, (path[1])); --SUPERNEW MY
 --CREATE INDEX IF NOT EXISTS post_thread_path ON posts (thread, path); --SUPERNEW MY
-CREATE INDEX IF NOT EXISTS post_parent_thread_path1 ON posts (parent, thread, (path[1])); --SUPERNEW MY
---CREATE INDEX IF NOT EXISTS post_id_and_thread ON posts (thread, id); -- !запрос для flat сортировки
+-- CREATE INDEX IF NOT EXISTS post_parent_thread_path1 ON posts (parent, thread, (path[1])); --SUPERNEW MY
+CREATE INDEX IF NOT EXISTS post_id_and_thread ON posts (thread, id); -- !запрос для flat сортировки
+CREATE INDEX IF NOT EXISTS post_thread_and_path ON posts (thread, path);
 CREATE INDEX IF NOT EXISTS post_path_parent_and_thread ON posts (thread, parent, path); -- для parentTree сортирвки
 CREATE INDEX IF NOT EXISTS post_pathFirst_parent_and_thread ON posts (thread, (path[1]), id); -- для parentTree сортирвки
--- --CREATE INDEX IF NOT EXISTS post_id_path ON posts (id, path); -- !запрос для flat сортировки
+-- -- --CREATE INDEX IF NOT EXISTS post_id_path ON posts (id, path); -- !запрос для flat сортировки
 
 CREATE OR REPLACE FUNCTION new_post_added() RETURNS TRIGGER AS
 $new_post_added$
@@ -195,7 +199,8 @@ CREATE UNLOGGED TABLE votes (
                                 vote INTEGER,
                                 UNIQUE (thread, "user")
 );
--- CREATE INDEX IF NOT EXISTS votes_full ON votes (thread, "user");
+--CREATE INDEX IF NOT EXISTS votes_full ON votes (thread, "user", vote);
+CREATE INDEX IF NOT EXISTS votes_full ON votes (thread, "user");
 
 DROP FUNCTION IF EXISTS new_vote() CASCADE;
 CREATE OR REPLACE FUNCTION new_vote() RETURNS TRIGGER AS
@@ -224,6 +229,7 @@ $change_vote$ LANGUAGE plpgsql;
 create trigger change_vote
     AFTER update on votes for each row
 execute procedure change_vote();
+
 
 ANALYZE;
 VACUUM ANALYZE;

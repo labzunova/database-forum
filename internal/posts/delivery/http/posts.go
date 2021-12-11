@@ -13,12 +13,12 @@ import (
 )
 
 type Handler struct {
-	PostsUcase posts.PostsUsecase
+	postsRepository posts.PostsRepo
 }
 
-func NewPostsHandler(postsUcase posts.PostsUsecase) posts.PostsHandler {
+func NewPostsHandler(repo posts.PostsRepo) posts.PostsHandler {
 	handler := &Handler{
-		PostsUcase: postsUcase,
+		postsRepository: repo,
 	}
 
 	return handler
@@ -30,13 +30,10 @@ func (h *Handler) PostGetOne(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseInt(params["id"], 0, 64)
 	var related []string
 	related = strings.Split(r.URL.Query().Get("related"), ",")
-fmt.Println(related)
-	fmt.Println("GET POST", id)
 
 	fullPost := posts.FullPost{}
 
-	post, err := h.PostsUcase.GetPost(int(id))
-	fmt.Println("get post error(handler)", err)
+	post, err := h.postsRepository.GetPost(int(id))
 	if err.Code == 404 {
 		err.Message = fmt.Sprintf("Can't find post with id: %d", id)
 		helpers.CreateResponse(w, http.StatusNotFound, err)
@@ -44,19 +41,24 @@ fmt.Println(related)
 	}
 
 	if len(related) != 0 {
-		fmt.Println("related exist")
-		fullPost, err = h.PostsUcase.GetPostInfo(post, int(id), related)
-		fmt.Println("get post info error(handler)", err)
-		if err.Code != 200 {
-			helpers.CreateResponse(w, http.StatusInternalServerError, err.Code)
-			return
+		for _, info := range related {
+			switch info {
+			case "user":
+				user, _ := h.postsRepository.GetPostAuthor(post.Author)
+				fmt.Println("post author", user)
+				fullPost.User = &user
+			case "forum":
+				forum, _ := h.postsRepository.GetPostForum(post.Forum)
+				fmt.Println("post forum", forum)
+				fullPost.Forum = &forum
+			case "thread":
+				thread, _ := h.postsRepository.GetPostThread(post.Thread)
+				fmt.Println("post thread", thread)
+				fullPost.Thread = &thread
+			}
 		}
 	}
-
 	fullPost.Post = &post
-	fmt.Println("done")
-	fmt.Println("post", fullPost)
-
 
 	helpers.CreateResponse(w, http.StatusOK, fullPost)
 	return
@@ -70,7 +72,7 @@ func (h *Handler) PostUpdate(w http.ResponseWriter, r *http.Request){
 	newMessage := new(posts.UpdateMessage)
 	json.NewDecoder(r.Body).Decode(&newMessage)
 
-	post, err := h.PostsUcase.UpdatePost(int(id), newMessage.Message)
+	post, err := h.postsRepository.UpdatePost(int(id), newMessage.Message)
 	if err.Code == 404 {
 		helpers.CreateResponse(w, http.StatusNotFound, err)
 		return
@@ -93,13 +95,34 @@ func (h *Handler) PostsCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	posts, errr := h.PostsUcase.CreatePosts(slug, newPosts)
-	switch errr.Code {
-	case 404:
-		fmt.Println("not found")
+	var thread models.Thread
+	id, errID := strconv.Atoi(slug)
+	if errID == nil {
+		var errr models.Error
+		thread, errr = h.postsRepository.GetThreadAndForumById(id)
+		if errr.Code == 404 {
+			errr.Message = "Can't find post thread by id: " + slug
+			helpers.CreateResponse(w, http.StatusNotFound, err)
+			return
+		}
+	} else {
+		var errr models.Error
+		thread, errr = h.postsRepository.GetThreadAndForumBySlug(slug)
+		fmt.Println(errr)
+		if errr.Code == 404 {
+			errr.Message = "Can't find post thread by id: " + slug
+			helpers.CreateResponse(w, http.StatusNotFound, err)
+			return
+		}
+	}
+
+	posts, errr := h.postsRepository.CreatePosts(thread, newPosts)
+	if errr.Code == 404 {
+		errr.Message = "Can't find user "
 		helpers.CreateResponse(w, http.StatusNotFound, err)
 		return
-	case 409:
+	}
+	if errr.Code == 409 {
 		errr.Message = "Parent post was created in another thread"
 		helpers.CreateResponse(w, http.StatusConflict, errr)
 		return

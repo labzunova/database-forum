@@ -20,8 +20,6 @@ func NewForumRepo(db *pgx.ConnPool) forum.ForumRepo {
 }
 
 func (f *forumRepo) CreateNewForum(forum models.Forum) (models.Forum, models.Error) {
-	fmt.Println("create forum", forum)
-
 	err := f.DB.QueryRow("select nickname from users where nickname=$1", forum.User).Scan(&forum.User)
 	if err != nil {
 		return models.Forum{}, models.Error{Code: 404}
@@ -29,9 +27,9 @@ func (f *forumRepo) CreateNewForum(forum models.Forum) (models.Forum, models.Err
 
 	// checkUserExists
 	_, err = f.DB.Exec(`insert into forums 
-    	(title, "user", slug) 
-    	values ($1, $2, $3) returning "user"`,
-		forum.Title, forum.User, forum.Slug)
+    	(slug, title, "user") 
+    	values ($1, $2, $3)`,
+		forum.Slug, forum.Title, forum.User)
 	fmt.Println("create err ", err)
 	//dbErr, ok := err.(pgx.PgError)
 	//fmt.Println("create err ", dbErr, ok, dbErr.Code, dbErr.Message)
@@ -48,22 +46,19 @@ func (f *forumRepo) CreateNewForum(forum models.Forum) (models.Forum, models.Err
 		fmt.Println("409")
 		return models.Forum{}, models.Error{Code: 409}
 	}
-	if err == sql.ErrNoRows { // если владелец не найден
-		fmt.Println("404")
-		return models.Forum{}, models.Error{Code: 404}
-	}
+	//if err == sql.ErrNoRows { // если владелец не найден
+	//	fmt.Println("404")
+	//	return models.Forum{}, models.Error{Code: 404}
+	//}
 
 	return forum, models.Error{Code: 200}
 }
 
 func (f *forumRepo) GetForum(slug string) (models.Forum, models.Error) {
-	fmt.Println("       get forum", slug)
 	forumm := new(models.Forum)
-	err := f.DB.QueryRow(`select slug, title, "user", posts_count, threads_count from forums where slug = $1`,
-		slug).Scan(&forumm.Slug, &forumm.Title, &forumm.User, &forumm.Posts, &forumm.Threads)
-	fmt.Println("forum", forumm)
+	err := f.DB.QueryRow(`select slug, title, threads_count, posts_count, "user" from forums where slug = $1`, // TODO limit 1?
+		slug).Scan(&forumm.Slug, &forumm.Title, &forumm.Threads, &forumm.Posts, &forumm.User)
 	fmt.Println("err", err)
-
 	if err != nil {
 		return models.Forum{}, models.Error{Code: 404}
 	}
@@ -79,18 +74,19 @@ func (f *forumRepo) CreateThread(slug string, thread models.Thread) (models.Thre
 		threadSlug = &thread.Slug
 	}
 
-	var id int
-	err := f.DB.QueryRow("select id from users where nickname=$1", thread.Author).Scan(&id)
+	err := f.DB.QueryRow("select nickname from users where nickname=$1 limit 1", thread.Author).Scan(&thread.Author)
 	if err == pgx.ErrNoRows {
 		fmt.Println("404")
 		return models.Thread{}, models.Error{Code: 404, Message: "Can't find thread author by nickname: " + thread.Author}
 	}
 
+	// todo mb limit 1?
+	// todo insert consistency?
 	errr := f.DB.QueryRow(`
 	insert into threads 
     (title, author, message, forum, slug, created) 
 	values ($1,$2,$3,(select slug from forums where slug = $4),$5,$6) 
-	returning id, forum`,
+	returning id, forum`, // todo right return?
 		thread.Title, thread.Author, thread.Message, slug, threadSlug, thread.Created).Scan(&thread.ID, &thread.Forum)
 
 	dbErr, _ := errr.(pgx.PgError)
@@ -101,6 +97,7 @@ func (f *forumRepo) CreateThread(slug string, thread models.Thread) (models.Thre
 
 	}
 	if errr != nil { // если такой форум уже еть
+		fmt.Println(errr)
 		fmt.Println("409")
 		return models.Thread{}, models.Error{Code: 409}
 	}
@@ -112,14 +109,14 @@ func (f *forumRepo) CreateThread(slug string, thread models.Thread) (models.Thre
 func (f *forumRepo) GetUsers(slug string, params models.ParseParams) ([]models.User, models.Error) {
 	var queryParametres []interface{}
 	query := `
-		select userNickname, fullname, email, about from forum_users 
+		select userNickname, fullname, about, email from forum_users 
         where forumSlug = $1 
 	`
 	queryParametres = append(queryParametres, slug)
 
 	if params.Since != "" {
 		fmt.Println("with since", params.Since)
-		if params.Desc {
+		if params.Desc == "true" {
 			query += " and userNickname < $2 "
 		} else {
 			query += " and userNickname > $2 "
@@ -127,8 +124,8 @@ func (f *forumRepo) GetUsers(slug string, params models.ParseParams) ([]models.U
 		queryParametres = append(queryParametres, params.Since)
 	}
 
-	if !params.Desc {
-		query += " order by userNickname asc"
+	if params.Desc == "false" {
+		query += " order by userNickname "
 	} else {
 		query += " order by userNickname DESC "
 	}
@@ -141,8 +138,6 @@ func (f *forumRepo) GetUsers(slug string, params models.ParseParams) ([]models.U
 		}
 		queryParametres = append(queryParametres, params.Limit)
 	}
-	fmt.Println(query)
-	fmt.Println(queryParametres)
 
 	forumUsers, err := f.DB.Query(query, queryParametres...)
 	fmt.Println("            get forum users error:", err)
@@ -150,31 +145,17 @@ func (f *forumRepo) GetUsers(slug string, params models.ParseParams) ([]models.U
 		return []models.User{}, models.Error{Code: 404}
 	}
 
-	i := 0
-	//var about, fullname *string
 	users := make([]models.User, 0)
 	for forumUsers.Next() {
-		fmt.Println("start scan user")
 		user := &models.User{}
 		err = forumUsers.Scan(
 			&user.Nickname,
 			&user.FullName,
-			&user.Email,
 			&user.About,
+			&user.Email,
 		)
-		//if about != nil {
-		//	user.About = *about
-		//}
-		//if fullname != nil {
-		//	user.FullName = *fullname
-		//}
-		fmt.Println(slug, 	"                uABOUT", user.About)
-		fmt.Println("              slug", slug)
-		fmt.Println(i)
-		i++
-		fmt.Println("   user",user)
-		fmt.Println("     scan forum user error:", err)
 		if err != nil {
+			fmt.Println("     scan forum user error:", err)
 			return []models.User{}, models.Error{Code: 500}
 		}
 
@@ -185,76 +166,58 @@ func (f *forumRepo) GetUsers(slug string, params models.ParseParams) ([]models.U
 }
 
 func (f *forumRepo) GetThreads(slug string, params models.ParseParams) ([]models.Thread, models.Error) {
-	fmt.Println("       get threads: ", slug, params)
-fmt.Println("            ", slug)
 	var queryParams []interface{}
 	query := `
-		select id, title, author, message, votes, slug, created from threads 
+		select id, slug, forum, author, title, message, votes, created from threads 
 		where forum = $1 `
 	queryParams = append(queryParams, slug)
-	fmt.Println("            ", slug)
 
 	if params.Since != "" {
 		fmt.Println("with since")
-		if params.Desc {
+		if params.Desc == "true" {
 			query += "and created <= $2 "
 		} else {
 			query += "and created >= $2 "
 		}
 
-		//layout := "2006-01-02T15:04:05.000Z"
-		//str := params.Since
-		//t, _ := time.Parse(layout, str)
-
 		queryParams = append(queryParams, params.Since)
 	}
-	fmt.Println("            ", slug)
 
-	if !params.Desc {
+	if params.Desc == "false" {
 		query += "order by created "
 	} else {
-		fmt.Println("with desc")
 		query += "order by created desc "
 	}
-	fmt.Println("            ", slug)
 
 	if params.Limit != 0 {
 		if params.Since == "" {
-			fmt.Println("with limit1")
 			query += "LIMIT $2"
 		} else {
-			fmt.Println("with limit2")
 			query += "LIMIT $3"
 		}
 		queryParams = append(queryParams, params.Limit)
 	}
-	fmt.Println("            ", slug)
 
 	forumThreads, err := f.DB.Query(query, queryParams...)
-	fmt.Println("            ", slug)
-
 	fmt.Println(err)
 	if err != nil {
 		return []models.Thread{}, models.Error{Code: 404}
 	}
 
 	var threadSlug *string
-
 	threads := make([]models.Thread, 0)
 	for forumThreads.Next() {
 		thread := new(models.Thread)
 		err = forumThreads.Scan(
 			&thread.ID,
-			&thread.Title,
+			&threadSlug,
+			&thread.Forum,
 			&thread.Author,
+			&thread.Title,
 			&thread.Message,
 			&thread.Votes,
-			&threadSlug,
 			&thread.Created,
 		)
-		fmt.Println("            ", slug)
-		fmt.Println(thread)
-		thread.Forum = slug
 		if threadSlug != nil {
 			thread.Slug = *threadSlug
 		}
@@ -266,25 +229,35 @@ fmt.Println("            ", slug)
 		threads = append(threads, *thread)
 	}
 
-	fmt.Println(threads)
 	if len(threads) == 0 {
-		return threads, models.Error{Code: 404}
+		check := f.CheckForumExists(slug) // todo getBySlug???
+		if !check {
+			return threads, models.Error{Code: 404}
+		}
 	}
-	fmt.Println("            ", slug)
-	fmt.Println("return")
+
 	return threads, models.Error{Code: 200}
 }
 
 func (f *forumRepo) GetThreadBySlug(slug string) (models.Thread, models.Error) {
 	thread := models.Thread{}
-	_ = f.DB.QueryRow("select id, title, author, message, votes, slug, created, forum from threads where slug = $1", slug).
-		Scan(&thread.ID,
-			&thread.Title,
+	err := f.DB.QueryRow("select id, slug, forum, author, title, message, votes, created  from threads where slug = $1 limit 1", slug).
+		Scan(
+			&thread.ID,
+			&thread.Slug,
+			&thread.Forum,
 			&thread.Author,
+			&thread.Title,
 			&thread.Message,
 			&thread.Votes,
-			&thread.Slug,
 			&thread.Created,
-			&thread.Forum)
+			)
+	fmt.Println(err)
 	return thread, models.Error{Code: 409}
+}
+
+
+func (f *forumRepo) CheckForumExists(slug string) (check bool) {
+	_ = f.DB.QueryRow(`select exists(select 1 from forums where slug=$1)`, slug).Scan(&check)
+	return check
 }

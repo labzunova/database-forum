@@ -7,26 +7,26 @@ import (
 )
 
 type Handler struct {
-	ServiceUcase service.ServiceUsecase
+	serviceRepository service.ServiceRepo
 }
 
-func NewServiceHandler(serviceUcase service.ServiceUsecase) service.ServiceHandler {
+func NewServiceHandler(repo service.ServiceRepo) service.ServiceHandler {
 	handler := &Handler{
-		ServiceUcase: serviceUcase,
+		serviceRepository: repo,
 	}
 	return handler
 }
 
 // Clear Безвозвратное удаление всей пользовательской информации из базы данных.
 func (h *Handler) Clear(w http.ResponseWriter, r *http.Request) {
-	err := h.ServiceUcase.Clear()
+	err := h.serviceRepository.Clear()
 	helpers.CreateResponse(w, http.StatusOK, err)
 	return
 }
 
 // Status Получение инфомарции о базе данных.
 func (h *Handler) Status(w http.ResponseWriter, r *http.Request)  {
-	status := h.ServiceUcase.Status()
+	status := h.serviceRepository.Status()
 	helpers.CreateResponse(w, http.StatusOK, status)
 	return
 }

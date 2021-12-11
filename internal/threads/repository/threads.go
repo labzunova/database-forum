@@ -4,7 +4,6 @@ import (
 	"DBproject/internal/threads"
 	"DBproject/models"
 	"fmt"
-	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx"
 )
 
@@ -19,32 +18,32 @@ func NewThreadsRepo(db *pgx.ConnPool) threads.ThreadsRepo {
 }
 
 const treeDescSince = `
-	select id, parent, author, message, isEdited, forum, thread, created
+	select thread, author, forum, isEdited, message, parent, created, id
 	from posts
 	where thread = $1 and path < (select path from posts where id = $2)
 	order by path desc
 	limit $3`
 const treeSince = `
-	select id, parent, author, message, isEdited, forum, thread, created
+	select thread, author, forum, isEdited, message, parent, created, id
 	from posts
 	where thread = $1 and path > (select path from posts where id = $2)
 	order by path asc
 	limit $3`
 const treeDesc = `
-	select id, parent, author, message, isEdited, forum, thread, created
+	select thread, author, forum, isEdited, message, parent, created, id
 	from posts
 	where thread = $1 
 	order by path desc
 	limit $2`
 const tree = `
-	select id, parent, author, message, isEdited, forum, thread, created
+	select thread, author, forum, isEdited, message, parent, created, id
 	from posts
 	where thread = $1 
 	order by path asc
 	limit $2`
 
 const parentTreeDescSince = `
-	select id, parent, author, message, isEdited, forum, thread, created
+	select thread, author, forum, isEdited, message, parent, created, id
 	from posts
 	where thread = $1 and path[1] in(
 		select distinct path[1] from posts
@@ -54,7 +53,8 @@ const parentTreeDescSince = `
 		limit $3
 	)
 	order by path[1] desc, path[2:]`
-const parentTreeSince = `select id, parent, author, message, isEdited, forum, thread, created
+const parentTreeSince = `
+	select thread, author, forum, isEdited, message, parent, created, id
 	from posts
 	where thread = $1 and path[1] in(
 		select distinct path[1] from posts
@@ -65,7 +65,7 @@ const parentTreeSince = `select id, parent, author, message, isEdited, forum, th
 	)
 	order by path`
 const parentTreeDesc = `	
-	select id, parent, author, message, isEdited, forum, thread, created
+	select thread, author, forum, isEdited, message, parent, created, id
 	from posts
 	where thread = $1 and path[1] in(
 		select distinct path[1] from posts
@@ -75,7 +75,7 @@ const parentTreeDesc = `
 	)
 	order by path[1] desc, path[2:]`
 const parentTree = `
-	select id, parent, author, message, isEdited, forum, thread, created
+	select thread, author, forum, isEdited, message, parent, created, id
 	from posts
 	where thread = $1 and path[1] in(
 		select distinct path[1] from posts
@@ -94,11 +94,9 @@ func (db *threadsRepo) GetThread(slug string, id int) (models.Thread, models.Err
 		thread.Slug = slug
 	}
 
-	fmt.Println(slug)
 	if id != 0 {
-		fmt.Println("get thread by id")
-		err := db.DB.QueryRow("select title, author, forum, message, votes, slug, created from threads where id = $1", id).
-			Scan(&thread.Title, &thread.Author, &thread.Forum, &thread.Message, &thread.Votes, &threadSlug, &thread.Created)
+		err := db.DB.QueryRow("select id, slug, forum, author, title, message, votes, created from threads where id = $1 limit 1", id).
+			Scan(&thread.ID, &threadSlug, &thread.Forum, &thread.Author, &thread.Title, &thread.Message, &thread.Votes, &thread.Created)
 		fmt.Println(err)
 		if threadSlug != nil {
 			thread.Slug = *threadSlug
@@ -106,20 +104,22 @@ func (db *threadsRepo) GetThread(slug string, id int) (models.Thread, models.Err
 		if err != nil {
 			return thread, models.Error{Code: 404}
 		}
-	} else {
-		fmt.Println("get thread by slug")
-		err := db.DB.QueryRow("select id, slug, title, author, forum, message, votes, created from threads where slug = $1", slug).
-			Scan(&thread.ID,  &threadSlug, &thread.Title, &thread.Author, &thread.Forum, &thread.Message, &thread.Votes, &thread.Created)
+		return thread, models.Error{Code: 200}
+	}
+
+	// by slug
+		err := db.DB.QueryRow("select id, slug, forum, author, title, message, votes, created from threads where slug = $1", slug).
+			Scan(&thread.ID, &threadSlug, &thread.Forum, &thread.Author, &thread.Title, &thread.Message, &thread.Votes, &thread.Created)
 		if threadSlug != nil {
 			thread.Slug = *threadSlug
 		}
-		fmt.Println(thread, err)
+		fmt.Println(err)
 		if err != nil {
+			fmt.Println("Ererer")
 			return thread, models.Error{Code: 404, Message: "error"}
 		}
-	}
+		return thread, models.Error{Code: 200}
 
-	return thread, models.Error{Code: 200}
 }
 
 func (db *threadsRepo) UpdateThreadBySlug(slug string, thread models.Thread) (models.Thread, models.Error) {
@@ -127,9 +127,9 @@ func (db *threadsRepo) UpdateThreadBySlug(slug string, thread models.Thread) (mo
 	err := db.DB.QueryRow(`
 		update threads set message=coalesce(nullif($1,''), message), title=coalesce(nullif($2,''), title) 
 		where slug = $3 
-		returning id, slug, title, author, forum, message, votes, created`,
+		returning id, slug, forum, author, title, message, votes, created`,
 		thread.Message, thread.Title, slug).
-		Scan(&thread.ID, &threadSlug, &thread.Title, &thread.Author, &thread.Forum, &thread.Message, &thread.Votes, &thread.Created)
+		Scan(&thread.ID, &threadSlug, &thread.Forum, &thread.Author, &thread.Title, &thread.Message, &thread.Votes, &thread.Created)
 	if threadSlug != nil {
 		thread.Slug = *threadSlug
 	}
@@ -145,9 +145,9 @@ func (db *threadsRepo) UpdateThreadById(id int, thread models.Thread) (models.Th
 	err := db.DB.QueryRow(`
 		update threads set message=coalesce(nullif($1,''), message), title=coalesce(nullif($2,''), title)
 		where id = $3 
-		returning id, slug, title, author, forum, message, votes, created`,
+		returning id, slug, forum, author, title, message, votes, created`,
 		thread.Message, thread.Title, id).
-		Scan(&thread.ID, &threadSlug, &thread.Title, &thread.Author, &thread.Forum, &thread.Message, &thread.Votes, &thread.Created)
+		Scan(&thread.ID, &threadSlug, &thread.Forum, &thread.Author, &thread.Title, &thread.Message, &thread.Votes, &thread.Created)
 	if threadSlug != nil {
 		thread.Slug = *threadSlug
 	}
@@ -210,7 +210,7 @@ func (db *threadsRepo) GetThreadPostsById(id int, slugOrId string, params models
 		switch {
 		case params.Desc && params.Since != 0:
 			query = `
-				SELECT id, parent, author, message, isEdited, forum, thread, created
+				select thread, author, forum, isEdited, message, parent, created, id
 				FROM posts
 				WHERE thread = $1 and id < $2
 				ORDER BY id DESC
@@ -219,7 +219,7 @@ func (db *threadsRepo) GetThreadPostsById(id int, slugOrId string, params models
 			queryParameters = append(queryParameters, params.Since, params.Limit)
 		case !params.Desc && params.Since != 0:
 			query = `
-				SELECT id, parent, author, message, isEdited, forum, thread, created
+				select thread, author, forum, isEdited, message, parent, created, id
 				FROM posts
 				WHERE thread = $1 and id > $2
 				ORDER BY id
@@ -228,7 +228,7 @@ func (db *threadsRepo) GetThreadPostsById(id int, slugOrId string, params models
 			queryParameters = append(queryParameters, params.Since, params.Limit)
 		case params.Desc && params.Since == 0:
 			query = `
-				SELECT id, parent, author, message, isEdited, forum, thread, created
+				select thread, author, forum, isEdited, message, parent, created, id
 				FROM posts
 				WHERE thread = $1
 				ORDER BY id DESC
@@ -237,7 +237,7 @@ func (db *threadsRepo) GetThreadPostsById(id int, slugOrId string, params models
 			queryParameters = append(queryParameters, params.Limit)
 		case !params.Desc && params.Since == 0:
 			query = `
-				SELECT id, parent, author, message, isEdited, forum, thread, created
+				select thread, author, forum, isEdited, message, parent, created, id
 				FROM posts
 				WHERE thread = $1
 				ORDER BY id
@@ -260,7 +260,6 @@ func (db *threadsRepo) GetThreadPostsById(id int, slugOrId string, params models
 	//}
 	if err != nil {
 		return nil, models.Error{Code: 404, Message: "Can't find forum "}
-		//return nil, models.Error{Code: 500}
 	}
 
 	posts := make([]models.Post, 0)
@@ -268,14 +267,14 @@ func (db *threadsRepo) GetThreadPostsById(id int, slugOrId string, params models
 		post := models.Post{}
 		var parent *int
 		err = rows.Scan(
-			&post.ID,
-			&parent,
-			&post.Author,
-			&post.Message,
-			&post.IsEdited,
-			&post.Forum,
 			&post.Thread,
+			&post.Author,
+			&post.Forum,
+			&post.IsEdited,
+			&post.Message,
+			&parent,
 			&post.Created,
+			&post.ID,
 		)
 		if parent != nil {
 			post.Parent = *parent
@@ -305,31 +304,10 @@ func (db *threadsRepo) VoteThreadBySlug(slug string, vote models.Vote) models.Er
 		update set vote=$3`, vote.Nickname, slug, vote.Voice)
 
 	fmt.Println(err)
-	dbErr, ok := err.(pgx.PgError)
-	if ok {
-		switch dbErr.Code {
-		case pgerrcode.ForeignKeyViolation:
-			var id int
-			err = db.DB.QueryRow("select user from users where nickname = $1", vote.Nickname).Scan(&id)
-			if err != nil {
-				return models.Error{Code: 404, Message: "Can't find user by nickname: " + vote.Nickname}
-			}
-			return models.Error{Code: 404, Message: "Can't find thread by slug: " + slug}
-		//case pgerrcode.UniqueViolation:
-		//	updateErr := db.UpdateVoteThreadBySlug(slug, vote)
-		//	if updateErr.Code != 200 {
-		//		return models.Error{Code: 500}
-		//	}
-
-		//	return models.Error{Code: 200}
-		}
+	if err != nil {
+		fmt.Println("ERROR")
+		return models.Error{Code: 404}
 	}
-
-	//fmt.Println("NEW VOICE ", vote.Voice)
-	//_, err = db.DB.Exec("update threads set votes=votes+$1 where slug=$2", vote.Voice, slug)
-	//if err != nil {
-	//	return models.Error{Code: 500}
-	//}
 
 	return models.Error{Code: 200}
 }
@@ -339,37 +317,17 @@ func (db *threadsRepo) VoteThreadById(id int, vote models.Vote) models.Error {
     	($1,$2,$3)
 		on conflict ("user",thread) do
 		update set vote=$3`, vote.Nickname, id, vote.Voice)
-	fmt.Println(err)
-	dbErr, ok := err.(pgx.PgError)
-	fmt.Println(dbErr.Code)
-	if ok {
-		switch dbErr.Code {
-		case pgerrcode.NotNullViolation:
-			return models.Error{Code: 404}
-		//case pgerrcode.UniqueViolation:
-		//	updateErr := db.UpdateVoteThreadById(id, vote)
-		//	if updateErr.Code != 200 {
-		//		return models.Error{Code: 500}
-		//	}
-		//	return models.Error{Code: 200}
-		}
+	if err != nil {
+		return models.Error{Code: 404}
 	}
 	fmt.Println("UPDATING")
-
-	//fmt.Println("NEW VOICE ", vote)
-	//_, err = db.DB.Exec("update threads set votes=votes+$1 where id=$2", vote.Voice, id)
-	//if err != nil {
-	//	return models.Error{Code: 500}
-	//}
 
 	return models.Error{Code: 200}
 }
 
 func (db *threadsRepo) GetThreadIDBySlug(slug string, id int) (int, models.Error) {
 	err := db.DB.QueryRow("select id from threads where slug=$1 or id=$2", slug, id).Scan(&id)
-	fmt.Println("get by slug", err, id)
 	if err != nil || id == 0 {
-		fmt.Println("return err")
 		return id, models.Error{Code: 404}
 	}
 	return id, models.Error{Code: 200}

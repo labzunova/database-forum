@@ -37,7 +37,7 @@ func (db *usersRepo) GetUser(nickname string) (models.User, models.Error) {
 	fmt.Println("get user ", nickname)
 
 	userr := models.User{}
-	err := db.DB.QueryRow("select nickname, fullname, about, email from users where nickname=$1", nickname).
+	err := db.DB.QueryRow("select nickname, fullname, about, email from users where nickname=$1 limit 1", nickname).
 		Scan(&userr.Nickname, &userr.FullName, &userr.About, &userr.Email)
 	fmt.Println("ERR", err)
 	if err == pgx.ErrNoRows {
@@ -68,6 +68,7 @@ func (db *usersRepo) UpdateUser(profile models.User) (models.User, models.Error)
 	//if ok && dbError.Code == pgerrcode.UniqueViolation {
 	//	return models.User{}, models.Error{Code: 409}
 	//}
+	fmt.Println(err)
 	if err != nil {
 		return models.User{}, models.Error{Code: 409}
 	}

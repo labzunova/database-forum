@@ -11,12 +11,12 @@ type UserHandler interface {
 	UserUpdate(w http.ResponseWriter, r *http.Request)
 }
 
-type UserUsecase interface {
-	Create(user models.User) models.Error
-	GetByNickname(nickname string) (models.User, models.Error)
-	Update(profile models.User) (models.User, models.Error)
-	GetExistingUsers(nickname, email string) ([]models.User, models.Error)
-}
+//type UserUsecase interface {
+//	Create(user models.User) models.Error
+//	GetByNickname(nickname string) (models.User, models.Error)
+//	Update(profile models.User) (models.User, models.Error)
+//	GetExistingUsers(nickname, email string) ([]models.User, models.Error)
+//}
 
 type UserRepo interface {
 	CreateUser(profile models.User) models.Error

@@ -16,10 +16,10 @@ type ServiceHandler interface {
 	Status(w http.ResponseWriter, r *http.Request)
 }
 
-type ServiceUsecase interface {
-	Clear() error
-	Status() DBinfo
-}
+//type ServiceUsecase interface {
+//	Clear() error
+//	Status() DBinfo
+//}
 
 type ServiceRepo interface {
 	Clear() error
