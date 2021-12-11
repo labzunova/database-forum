@@ -1,6 +1,10 @@
 package main
 
 import (
+	"fmt"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"net/http"
+
 	"DBproject/internal/forum/delivery"
 	repository2 "DBproject/internal/forum/repository"
 	http3 "DBproject/internal/posts/delivery/http"
@@ -11,14 +15,28 @@ import (
 	repository4 "DBproject/internal/threads/repository"
 	http0 "DBproject/internal/user/delivery/http"
 	"DBproject/internal/user/repository"
-	"fmt"
+
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx"
 	_ "github.com/lib/pq"
-	"net/http"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
+var requests = prometheus.NewCounter(prometheus.CounterOpts{
+	Name: "requests",
+	Help: "Requests for RPS metric",
+})
+
+func counterMiddleware(_ *mux.Router) mux.MiddlewareFunc {
+	return func(handler http.Handler) http.Handler {
+		return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+			requests.Inc()
+		})
+	}
+}
+
 func main() {
+	prometheus.MustRegister(requests)
 	connectionString := "postgres://postgres:1111@3.22.112.0/forums?sslmode=disable"
 	//connectionString := "postgres://lbznv:1111@localhost/forums?sslmode=disable"
 	config, err := pgx.ParseURI(connectionString)
@@ -56,6 +74,8 @@ func main() {
 	serviceHandler := http5.NewServiceHandler(serviceRepo)
 
 	api := mux.NewRouter().PathPrefix("/api").Subrouter()
+	api.Use(counterMiddleware(api))
+	api.Handle("/metrics", promhttp.Handler()).Methods(http.MethodGet)
 	api.HandleFunc("/forum/create", forumHandler.ForumCreate).Methods(http.MethodPost)
 	api.HandleFunc("/forum/{slug}/details", forumHandler.ForumGetOne).Methods(http.MethodGet)
 	api.HandleFunc("/forum/{slug}/create", forumHandler.ThreadCreate).Methods(http.MethodPost)
