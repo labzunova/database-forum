@@ -31,7 +31,6 @@ func counterMiddleware(_ *mux.Router) mux.MiddlewareFunc {
 	return func(handler http.Handler) http.Handler {
 		return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
 			requests.Inc()
-			fmt.Println("inc")
 			handler.ServeHTTP(response, request)
 		})
 	}
