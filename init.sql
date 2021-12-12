@@ -1,5 +1,4 @@
 -- CREATE EXTENSION IF NOT EXISTS CITEXT;
-
 DROP TABLE IF EXISTS votes CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS posts;
@@ -26,8 +25,8 @@ CREATE UNLOGGED TABLE forums (
     -- "user" CITEXT REFERENCES users(nickname) ON DELETE CASCADE NOT NULL,
                                  threads_count INTEGER DEFAULT 0,
                                  posts_count INTEGER DEFAULT 0,
-                                 "user" TEXT NOT NULL,
-                                 FOREIGN KEY ("user") REFERENCES Users (nickname),
+                                 userr TEXT NOT NULL,
+                                 FOREIGN KEY (userr) REFERENCES Users (nickname),
                                  created TIMESTAMP(3) WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 --CREATE INDEX IF NOT EXISTS forums_slug on forums using hash (slug); -- NEW
@@ -192,15 +191,15 @@ execute procedure new_forum_user_added();
 
 -- VOTES --
 CREATE UNLOGGED TABLE votes (
-                                "user" TEXT,
-                                FOREIGN KEY ("user") REFERENCES users (nickname),
+                                userr TEXT,
+                                FOREIGN KEY (userr) REFERENCES users (nickname),
                                 thread integer,
                                 FOREIGN KEY (thread)  REFERENCES threads(id),
                                 vote INTEGER,
-                                UNIQUE (thread, "user")
+                                UNIQUE (thread, userr)
 );
 --CREATE INDEX IF NOT EXISTS votes_full ON votes (thread, "user", vote);
-CREATE INDEX IF NOT EXISTS votes_full ON votes (thread, "user");
+CREATE INDEX IF NOT EXISTS votes_full ON votes (thread, userr);
 
 DROP FUNCTION IF EXISTS new_vote() CASCADE;
 CREATE OR REPLACE FUNCTION new_vote() RETURNS TRIGGER AS

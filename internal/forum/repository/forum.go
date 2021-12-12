@@ -56,7 +56,7 @@ func (f *forumRepo) CreateNewForum(forum models.Forum) (models.Forum, models.Err
 
 func (f *forumRepo) GetForum(slug string) (models.Forum, models.Error) {
 	forumm := new(models.Forum)
-	err := f.DB.QueryRow(`select slug, title, threads_count, posts_count, "user" from forums where slug = $1`, // TODO limit 1?
+	err := f.DB.QueryRow(`select slug, title, threads_count, posts_count, userr from forums where slug = $1`, // TODO limit 1?
 		slug).Scan(&forumm.Slug, &forumm.Title, &forumm.Threads, &forumm.Posts, &forumm.User)
 	fmt.Println("err", err)
 	if err != nil {
@@ -251,11 +251,10 @@ func (f *forumRepo) GetThreadBySlug(slug string) (models.Thread, models.Error) {
 			&thread.Message,
 			&thread.Votes,
 			&thread.Created,
-			)
+		)
 	fmt.Println(err)
 	return thread, models.Error{Code: 409}
 }
-
 
 func (f *forumRepo) CheckForumExists(slug string) (check bool) {
 	_ = f.DB.QueryRow(`select exists(select 1 from forums where slug=$1)`, slug).Scan(&check)
