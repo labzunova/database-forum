@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
 
 	"DBproject/internal/forum/delivery"
@@ -20,6 +19,7 @@ import (
 	"github.com/jackc/pgx"
 	_ "github.com/lib/pq"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var requests = prometheus.NewCounter(prometheus.CounterOpts{
@@ -75,7 +75,8 @@ func main() {
 
 	api := mux.NewRouter().PathPrefix("/api").Subrouter()
 	api.Use(counterMiddleware(api))
-	api.Handle("/metrics", promhttp.Handler()).Methods(http.MethodGet)
+	http.Handle("/metrics", promhttp.Handler())
+	//api.Handle("/metrics", promhttp.Handler()).Methods(http.MethodGet)
 	api.HandleFunc("/forum/create", forumHandler.ForumCreate).Methods(http.MethodPost)
 	api.HandleFunc("/forum/{slug}/details", forumHandler.ForumGetOne).Methods(http.MethodGet)
 	api.HandleFunc("/forum/{slug}/create", forumHandler.ThreadCreate).Methods(http.MethodPost)
